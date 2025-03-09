@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Dovedale Live Map</title>
+        <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    </head>
+    <body class="bg-zinc-900 text-white text-xl">
+        <div class="fixed top-2 left-2 flex gap-3 items-center">
+            <select class="bg-zinc-700 px-2 py-1 rounded" id="server"></select>
+            <p id="players">Players: N/A</p>
+        </div>
+        <canvas width="2867.7" height="1372.2"></canvas>
+        <div
+            class="fixed hidden px-2 py-1 bg-zinc-800 bg-opacity-75 text-white rounded text-sm z-50 pointer-events-none"
+            id="tooltip"
+        ></div>
+
+        <dialog
+            id="dialog"
+            class="p-3 bg-zinc-800 text-white rounded-2xl flex flex-col gap-5"
+        >
+            <form
+                class="flex gap-3 align-center justify-center"
+                id="lever-form"
+            >
+                <label class="content-center" for="box">Box:</label>
+                <input
+                    class="bg-zinc-700 rounded w-20 px-2"
+                    type="text"
+                    id="box"
+                    name="name"
+                    required
+                />
+                <label class="content-center" for="lever">Lever:</label>
+                <input
+                    class="bg-zinc-700 rounded w-20 px-2"
+                    type="number"
+                    id="lever"
+                    name="lever"
+                    required
+                />
+                <button class="bg-zinc-700 px-3 py-1 rounded-lg">Change</button>
+            </form>
+            <form method="dialog">
+                <button class="bg-zinc-700 px-3 py-1 rounded-lg">Close</button>
+            </form>
+        </dialog>
+
+        <div class="fixed bottom-2 left-2 flex gap-3 align-center">
+            <button id="levers" class="hidden bg-zinc-700 px-3 py-1 rounded-lg">
+                Levers
+            </button>
+            <p class="text-zinc-500 text-sm">
+                Hover over a dot to see the player's name
+            </p>
+        </div>
+        <script src="index.js?2"></script>
+    </body>
+</html>
