@@ -100,63 +100,6 @@ function updateServerList() {
   }
 }
 
-canvas.addEventListener('mousemove', (event) => {
-  const rect = canvas.getBoundingClientRect();
-  const mouseX = event.clientX - rect.left;
-  const mouseY = event.clientY - rect.top;
-
-  // Check if mouse is over any player
-  hoveredPlayer = null;
-
-  // Get all players from the current server or all servers
-  const allPlayers = getAllPlayers();
-
-  for (const player of allPlayers) {
-    const worldX = player[0];
-    const worldY = player[1];
-    const name = player[2];
-    const serverJobId = player[3]; // Server JobId
-    const canvasPos = worldToCanvas(worldX, worldY);
-
-    // Calculate distance from mouse to player
-    const distance = Math.sqrt(
-      Math.pow(mouseX - canvasPos.x, 2) +
-      Math.pow(mouseY - canvasPos.y, 2)
-    );
-
-    // If mouse is within 8 pixels of player dot, consider it a hover
-    if (distance <= 8) {
-      hoveredPlayer = player;
-      break;
-    }
-  }
-
-  // Show/hide tooltip based on hover state
-  if (hoveredPlayer) {
-    // Show server info alongside player name if viewing all servers
-    const playerName = hoveredPlayer[2] || 'Unknown Player';
-    const playerServer = hoveredPlayer[3];
-
-    if (currentServer === 'all' && playerServer) {
-      const shortServerId = playerServer.length > 6 ?
-        playerServer.substring(playerServer.length - 6) :
-        playerServer;
-      tooltip.textContent = `${playerName} (Server ${shortServerId})`;
-    } else {
-      tooltip.textContent = playerName;
-    }
-
-    tooltip.classList.remove('hidden');
-    tooltip.style.left = `${event.clientX + 10}px`;
-    tooltip.style.top = `${event.clientY + 10}px`;
-  } else {
-    tooltip.classList.add('hidden');
-  }
-
-  // Redraw scene to highlight hovered player
-  drawScene();
-});
-
 // Function to get all players for the current server selection
 function getAllPlayers() {
   if (currentServer === 'all') {
@@ -304,8 +247,66 @@ function drawGrid() {
   }
 }
 
+canvas.addEventListener('mousemove', (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+
+  // Check if mouse is over any player
+  hoveredPlayer = null;
+
+  // Get all players from the current server or all servers
+  const allPlayers = getAllPlayers();
+
+  for (const player of allPlayers) {
+    const worldX = player[0];
+    const worldY = player[1];
+    const name = player[2];
+    const serverJobId = player[3]; // Server JobId
+    const canvasPos = worldToCanvas(worldX, worldY);
+
+    // Calculate distance from mouse to player
+    const distance = Math.sqrt(
+      Math.pow(mouseX - canvasPos.x, 2) +
+      Math.pow(mouseY - canvasPos.y, 2)
+    );
+
+    // If mouse is within 8 pixels of player dot, consider it a hover
+    if (distance <= 8) {
+      hoveredPlayer = player;
+      break;
+    }
+  }
+
+  // Show/hide tooltip based on hover state
+  if (hoveredPlayer) {
+    // Show server info alongside player name if viewing all servers
+    const playerName = hoveredPlayer[2] || 'Unknown Player';
+    const playerServer = hoveredPlayer[3];
+
+    if (currentServer === 'all' && playerServer) {
+      const shortServerId = playerServer.length > 6 ?
+        playerServer.substring(playerServer.length - 6) :
+        playerServer;
+      tooltip.textContent = `${playerName} (Server ${shortServerId})`;
+    } else {
+      tooltip.textContent = playerName;
+    }
+
+    tooltip.classList.remove('hidden');
+    tooltip.style.left = `${event.clientX + 10}px`;
+    tooltip.style.top = `${event.clientY + 10}px`;
+  } else {
+    tooltip.classList.add('hidden');
+  }
+
+  // Redraw scene to highlight hovered player
+  drawScene();
+});
+
 // Open websocket
-const socket = new WebSocket('wss://map.dovedale.wiki/ws');
+const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+const socket = new WebSocket(`${protocol}${window.location.hostname}:${window.location.port}/ws`);
 
 let timeout;
 const clearCanvas = () => {
@@ -323,8 +324,8 @@ socket.onmessage = (event) => {
   // Process the data and organize by server
   const newServerData = {};
 
+  const jobId = receivedData.shift() || '???'; // Use 'default' if no server ID
   for (const player of receivedData) {
-    const jobId = player[3] || 'default'; // Use 'default' if no server ID
 
     if (!newServerData[jobId]) {
       newServerData[jobId] = [];
