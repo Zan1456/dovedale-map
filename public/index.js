@@ -305,8 +305,9 @@ canvas.addEventListener('mousemove', (event) => {
 });
 
 // Open websocket
-const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-const socket = new WebSocket(`${protocol}${window.location.hostname}:${window.location.port}/ws`);
+// const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+// const socket = new WebSocket(`${protocol}${window.location.hostname}:${window.location.port}/ws`);
+const socket = new WebSocket(`wss://map.dovedale.wiki/ws`);
 
 let timeout;
 const clearCanvas = () => {
@@ -321,26 +322,20 @@ socket.onmessage = (event) => {
   timeout && clearTimeout(timeout);
   const receivedData = JSON.parse(event.data);
 
-  // Process the data and organize by server
-  const newServerData = {};
+  const jobId = receivedData.shift() || '???'; // Get server ID
 
-  const jobId = receivedData.shift() || '???'; // Use 'default' if no server ID
-  for (const player of receivedData) {
-
-    if (!newServerData[jobId]) {
-      newServerData[jobId] = [];
-    }
-
-    newServerData[jobId].push(player);
+  // Initialize this server's data if it doesn't exist
+  if (!serverData[jobId]) {
+    serverData[jobId] = [];
   }
 
-  // Update our server data
-  serverData = newServerData;
+  // Replace the player data for this specific server only
+  serverData[jobId] = receivedData;
 
   // Update the server selection dropdown
   updateServerList();
 
-  console.log(`Received players from ${Object.keys(serverData).length} server(s), total: ${receivedData.length}`);
+  console.log(`Updated players for server ${jobId}, now tracking ${Object.keys(serverData).length} server(s)`);
 
   // Draw the scene with the updated data
   drawScene();
