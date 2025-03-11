@@ -371,7 +371,7 @@ const params = new URLSearchParams(window.location.search);
 if (params.get('levers') === 'true') {
   const leversButton = document.getElementById('levers');
   const form = document.getElementById('lever-form');
-  const key = params.get('key');
+  const key = document.cookie.match(/key=([^;]+)/)?.[1];
 
   leversButton.style.display = 'block';
 
