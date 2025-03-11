@@ -40,7 +40,7 @@ app.ws('/ws', (ws, req) => {
   webhooks.push(ws);
   ws.on('message', async (message) => {
     message = JSON.parse(message);
-    if (message.box && message.lever) {
+    if (message.key === "jaidenIsREALLYOldHonestly" && message.box && message.lever) {
       await changeLever(message.box, message.lever);
     }
   });

@@ -361,22 +361,24 @@ socket.onopen = () => {
 // Initial draw with empty data
 drawScene();
 
-// Handle window resize (optional)
 window.addEventListener('resize', () => {
   drawScene();
 });
 
 
-// temporary, please dont abuse this
-if (new URLSearchParams(window.location.search).get('key') === 'jaidenSmells') {
+// key is checked server side goober
+const params = new URLSearchParams(window.location.search);
+if (params.get('levers') === 'true') {
   const leversButton = document.getElementById('levers');
   const form = document.getElementById('lever-form');
+  const key = params.get('key');
 
   leversButton.style.display = 'block';
 
   leversButton.addEventListener('click', () => {
     const dialog = document.getElementById('dialog');
     dialog.showModal();
+    dialog.classList.remove('hidden');
   });
 
   form.addEventListener('submit', (event) => {
@@ -384,12 +386,10 @@ if (new URLSearchParams(window.location.search).get('key') === 'jaidenSmells') {
     const box = document.getElementById('box').value;
     const lever = document.getElementById('lever').value;
 
-    // Send the form data to the server
-    socket.send(JSON.stringify({ box, lever }));
+    socket.send(JSON.stringify({ box, lever, key }));
   });
 
-  // Handle dialog close
-  document.getElementById('dialog').addEventListener('close', () => {
-    console.log('Dialog closed');
+  dialog.addEventListener('close', () => {
+    dialog.classList.add('hidden');
   });
 }
