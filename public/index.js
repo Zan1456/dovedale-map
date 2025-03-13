@@ -2,22 +2,65 @@ const canvas = document.querySelector('canvas');
 const players = document.getElementById('players');
 const context = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
-const trainInfo = document.getElementById('train-info');
 const serverSelect = document.getElementById('servers');
-
 const TOP_LEFT = { x: -14818, y: -6757 }
 const BOTTOM_RIGHT = { x: 13859, y: 6965 }
+
 const ENABLE_TRAIN_INFO = false;
+
 const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
 const WORLD_HEIGHT = BOTTOM_RIGHT.y - TOP_LEFT.y;
 
 let serverData = {};
 let currentServer = 'all';
 let hoveredPlayer = null;
-let zoomLevel = 1;
-let panOffset = { x: 0, y: 0 };
+let lastX = canvas.width / 2;
+let lastY = canvas.height / 2;
+let dragStart = null;
+let isDragging = false;
 
-context.globalAlpha = 1;
+function trackTransforms(ctx) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  let transform = svg.createSVGMatrix();
+
+  ctx.getTransform = function () {
+    return transform;
+  };
+
+  const savedTransforms = [];
+  const save = ctx.save;
+  ctx.save = function () {
+    savedTransforms.push(transform.translate(0, 0));
+    return save.call(ctx);
+  };
+
+  const restore = ctx.restore;
+  ctx.restore = function () {
+    transform = savedTransforms.pop();
+    return restore.call(ctx);
+  };
+
+  const scale = ctx.scale;
+  ctx.scale = function (sx, sy) {
+    transform = transform.scaleNonUniform(sx, sy);
+    return scale.call(ctx, sx, sy);
+  };
+
+  const translate = ctx.translate;
+  ctx.translate = function (dx, dy) {
+    transform = transform.translate(dx, dy);
+    return translate.call(ctx, dx, dy);
+  };
+
+  const point = svg.createSVGPoint();
+  ctx.transformedPoint = function (x, y) {
+    point.x = x;
+    point.y = y;
+    return point.matrixTransform(transform.inverse());
+  };
+}
+
+trackTransforms(context);
 
 const mapImage = new Image();
 mapImage.src = 'map.webp';
@@ -25,7 +68,6 @@ let mapLoaded = false;
 
 mapImage.onload = () => {
   mapLoaded = true;
-  console.log('Map image loaded');
   drawScene();
 };
 
@@ -37,7 +79,6 @@ serverSelect.addEventListener('change', function () {
 
 function updateServerList() {
   const currentServers = Object.keys(serverData);
-
   let needsUpdate = false;
 
   if (serverSelect.options.length - 1 !== currentServers.length) {
@@ -62,10 +103,7 @@ function updateServerList() {
   }
 
   if (needsUpdate) {
-    console.log("Updating server dropdown");
-
     const selectedValue = serverSelect.value;
-
     let html = '<option value="all">All Servers</option>';
 
     currentServers.forEach(jobId => {
@@ -106,17 +144,11 @@ function worldToCanvas(worldX, worldY) {
 }
 
 function getPlayerColour(name) {
-  if (!name) return '#00FFFF'; // default cyan
+  if (!name) return '#00FFFF';
 
   const NAME_COLORS = [
-    '#FD2943', // Bright red
-    '#01A2FF', // Bright blue
-    '#02B857', // Earth green
-    '#A75EB8', // Bright violet
-    '#F58225', // Bright orange
-    '#F5CD30', // Bright yellow
-    '#E8BAC8', // Light reddish violet
-    '#D7C59A'  // Brick yellow
+    '#FD2943', '#01A2FF', '#02B857', '#A75EB8',
+    '#F58225', '#F5CD30', '#E8BAC8', '#D7C59A'
   ];
 
   function getNameValue(pName) {
@@ -137,7 +169,6 @@ function getPlayerColour(name) {
   }
 
   const nameValue = getNameValue(name);
-
   const colorOffset = 0;
   let colorIndex = ((nameValue + colorOffset) % NAME_COLORS.length);
 
@@ -149,17 +180,17 @@ function getPlayerColour(name) {
 }
 
 function drawScene() {
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  const transformedP1 = context.transformedPoint(0, 0);
+  const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
+  context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
 
   if (mapLoaded) {
-    context.globalAlpha = 1;
     context.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
   } else {
     drawGrid();
   }
 
   const playersToShow = getAllPlayers();
-
   players.innerHTML = `Players: ${playersToShow.length}`;
 
   for (const player of playersToShow) {
@@ -171,8 +202,6 @@ function drawScene() {
     const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
 
     context.fillStyle = getPlayerColour(name);
-    context.globalAlpha = 1;
-
     const radius = isHovered ? 5.5 : 4;
 
     context.beginPath();
@@ -188,7 +217,7 @@ function drawScene() {
 function drawGrid() {
   context.strokeStyle = '#333333';
   context.lineWidth = 1;
-  const gridSize = 500; // world units
+  const gridSize = 500;
 
   for (let x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x += gridSize) {
     const canvasPos = worldToCanvas(x, TOP_LEFT.y);
@@ -209,13 +238,14 @@ function drawGrid() {
   }
 }
 
-canvas.addEventListener('mousemove', (event) => {
+function updateHoveredPlayer(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
-  const mouseX = event.clientX - rect.left;
-  const mouseY = event.clientY - rect.top;
+  const mouseX = clientX - rect.left;
+  const mouseY = clientY - rect.top;
+
+  const transformedPoint = context.transformedPoint(mouseX, mouseY);
 
   hoveredPlayer = null;
-
   const allPlayers = getAllPlayers();
 
   for (const player of allPlayers) {
@@ -224,8 +254,8 @@ canvas.addEventListener('mousemove', (event) => {
     const canvasPos = worldToCanvas(worldX, worldY);
 
     const distance = Math.sqrt(
-      Math.pow(mouseX - canvasPos.x, 2) +
-      Math.pow(mouseY - canvasPos.y, 2)
+      Math.pow(transformedPoint.x - canvasPos.x, 2) +
+      Math.pow(transformedPoint.y - canvasPos.y, 2)
     );
 
     if (distance <= 8) {
@@ -234,6 +264,10 @@ canvas.addEventListener('mousemove', (event) => {
     }
   }
 
+  updateTooltip(clientX, clientY);
+}
+
+function updateTooltip(clientX, clientY) {
   if (hoveredPlayer) {
     const playerName = hoveredPlayer[2] || 'Unknown Player';
     const playerServer = hoveredPlayer[3];
@@ -242,11 +276,6 @@ canvas.addEventListener('mousemove', (event) => {
     document.querySelector('#player .text-xl').textContent = playerName || 'Unknown';
 
     if (ENABLE_TRAIN_INFO && trainData && trainData.length >= 4) {
-      // document.querySelector('#destination .text-xl').textContent = trainData[0] || 'Unknown';
-      // document.querySelector('#train-name .text-xl').textContent = trainData[1] || 'Unknown';
-      // document.querySelector('#headcode .text-xl').textContent = trainData[2] || 'Unknown';
-      // document.querySelector('#train-class .text-xl').textContent = trainData[3] || 'Unknown';
-
       document.querySelectorAll('#tooltip > div').forEach(div => {
         div.classList.remove('hidden');
       });
@@ -268,28 +297,67 @@ canvas.addEventListener('mousemove', (event) => {
     }
 
     tooltip.classList.remove('hidden');
-    tooltip.style.left = `${event.clientX + 10}px`;
-    tooltip.style.top = `${event.clientY + 10}px`;
+    tooltip.style.left = `${clientX + 10}px`;
+    tooltip.style.top = `${clientY + 10}px`;
   } else {
     tooltip.classList.add('hidden');
   }
+}
 
+const scaleFactor = 1.1;
+
+function zoom(clicks, centerX, centerY) {
+  const factor = Math.pow(scaleFactor, clicks);
+  const pt = context.transformedPoint(centerX, centerY);
+  context.translate(pt.x, pt.y);
+  context.scale(factor, factor);
+  context.translate(-pt.x, -pt.y);
   drawScene();
+}
+
+canvas.addEventListener('mousedown', function (event) {
+  lastX = event.offsetX;
+  lastY = event.offsetY;
+  dragStart = context.transformedPoint(lastX, lastY);
+  isDragging = false;
 });
 
-// const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-// const socket = new WebSocket(`${protocol}${window.location.hostname}:${window.location.port}/ws`); // pointless cos roblox sends data to the public server
+canvas.addEventListener('mousemove', function (event) {
+  lastX = event.offsetX;
+  lastY = event.offsetY;
+
+  if (dragStart) {
+    isDragging = true;
+    const point = context.transformedPoint(lastX, lastY);
+    context.translate(point.x - dragStart.x, point.y - dragStart.y);
+    drawScene();
+  }
+
+  updateHoveredPlayer(event.clientX, event.clientY);
+});
+
+canvas.addEventListener('mouseup', function (event) {
+  if (!isDragging && dragStart) {
+    zoom(event.shiftKey ? -1 : 1, lastX, lastY);
+  }
+  dragStart = null;
+});
+
+canvas.addEventListener('wheel', function (event) {
+  const delta = event.deltaY > 0 ? -1 : 1;
+  zoom(delta, event.offsetX, event.offsetY);
+  event.preventDefault();
+});
+
 const socket = new WebSocket(`wss://map.dovedale.wiki/ws`);
 
 let timeout;
-const clearCanvas = () => {
-  console.log('Clearing canvas');
+function clearCanvas() {
   serverData = {};
   updateServerList();
   drawScene();
-};
+}
 
-// Handle incoming messages
 socket.onmessage = (event) => {
   timeout && clearTimeout(timeout);
   const receivedData = JSON.parse(event.data);
@@ -324,8 +392,7 @@ window.addEventListener('resize', () => {
   drawScene();
 });
 
-
-// hit like if you think vlieren needs to go outside
+// drop a like if you think vlieren needs to go outside
 const params = new URLSearchParams(window.location.search);
 if (params.get('levers') === 'true') {
   const leversButton = document.getElementById('levers');
@@ -352,3 +419,5 @@ if (params.get('levers') === 'true') {
     dialog.classList.add('hidden');
   });
 }
+
+drawScene();

@@ -41,7 +41,7 @@ app.ws('/ws', (ws, req) => {
   ws.on('message', async (message) => {
     message = JSON.parse(message);
     if (message.key === "jaidenIsREALLYOldHonestly" && message.box && message.lever) {
-      await changeLever(message.box, message.lever);
+      // await changeLever(message.box, message.lever);
     }
   });
   ws.on('closed', () => {
