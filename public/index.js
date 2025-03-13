@@ -246,10 +246,10 @@ canvas.addEventListener('mousemove', (event) => {
     document.querySelector('#player .text-xl').textContent = playerName || 'Unknown';
 
     if (ENABLE_TRAIN_INFO && trainData && trainData.length >= 4) {
-      document.querySelector('#destination .text-xl').textContent = trainData[0] || 'Unknown';
-      document.querySelector('#train-name .text-xl').textContent = trainData[1] || 'Unknown';
-      document.querySelector('#headcode .text-xl').textContent = trainData[2] || 'Unknown';
-      document.querySelector('#train-class .text-xl').textContent = trainData[3] || 'Unknown';
+      // document.querySelector('#destination .text-xl').textContent = trainData[0] || 'Unknown';
+      // document.querySelector('#train-name .text-xl').textContent = trainData[1] || 'Unknown';
+      // document.querySelector('#headcode .text-xl').textContent = trainData[2] || 'Unknown';
+      // document.querySelector('#train-class .text-xl').textContent = trainData[3] || 'Unknown';
 
       document.querySelectorAll('#tooltip > div').forEach(div => {
         div.classList.remove('hidden');
