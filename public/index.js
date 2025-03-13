@@ -380,7 +380,7 @@ socket.onerror = (error) => {
 
 socket.onclose = () => {
   console.log('WebSocket connection closed');
-  setTimeout(window.location.reload, 200);
+  setTimeout(window.location.reload, 800);
 };
 
 socket.onopen = () => {
