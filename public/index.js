@@ -4,7 +4,7 @@ const players = document.getElementById('players');
 const context = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
 const trainInfo = document.getElementById('train-info');
-const serverSelect = document.getElementById('server');
+const serverSelect = document.getElementById('servers');
 const TOP_LEFT = { x: -14818, y: -6757 }
 const BOTTOM_RIGHT = { x: 13859, y: 6965 }
 
@@ -255,21 +255,20 @@ canvas.addEventListener('mousemove', (event) => {
         div.classList.remove('hidden');
       });
     } else {
-      document.querySelectorAll('#tooltip > div:not(#player)').forEach(div => {
+      document.querySelectorAll('#tooltip > div:not(#player):not(#server)').forEach(div => {
         div.classList.add('hidden');
       });
     }
 
-    if (currentServer === 'all' && typeof playerServer === 'string') {
+    if (currentServer === 'all' && typeof playerServer === 'string' && Object.keys(serverData).length !== 1) {
       const shortServerId = playerServer.length > 6 ?
         playerServer.substring(playerServer.length - 6) :
         playerServer;
 
       document.querySelector('#server .text-xl').textContent = `${shortServerId}`;
-      document.querySelector('#server .text-xl').classList.remove('hidden');
+      document.querySelector('#server').classList.remove('hidden');
     } else {
-      // Hide the server info row
-      document.querySelector('#server .text-xl').classList.add('hidden');
+      document.querySelector('#server').classList.add('hidden');
     }
 
     tooltip.classList.remove('hidden');
