@@ -1,28 +1,24 @@
-// guys i think vlieren needs to go outside!!
 const canvas = document.querySelector('canvas');
 const players = document.getElementById('players');
 const context = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
 const trainInfo = document.getElementById('train-info');
 const serverSelect = document.getElementById('servers');
+
 const TOP_LEFT = { x: -14818, y: -6757 }
 const BOTTOM_RIGHT = { x: 13859, y: 6965 }
-
 const ENABLE_TRAIN_INFO = false;
-
-// Calculate world dimensions
 const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
 const WORLD_HEIGHT = BOTTOM_RIGHT.y - TOP_LEFT.y;
 
-// Server data tracking
 let serverData = {};
 let currentServer = 'all';
 let hoveredPlayer = null;
+let zoomLevel = 1;
+let panOffset = { x: 0, y: 0 };
 
-// Initialize the canvas and context
 context.globalAlpha = 1;
 
-// Load the map image
 const mapImage = new Image();
 mapImage.src = 'map.webp';
 let mapLoaded = false;
@@ -30,15 +26,15 @@ let mapLoaded = false;
 mapImage.onload = () => {
   mapLoaded = true;
   console.log('Map image loaded');
-  drawScene(); // Initial draw
+  drawScene();
 };
 
-// Setup server selection
 serverSelect.innerHTML = '<option value="all">All Servers</option>';
 serverSelect.addEventListener('change', function () {
   currentServer = this.value;
   drawScene();
 });
+
 function updateServerList() {
   const currentServers = Object.keys(serverData);
 
@@ -329,7 +325,7 @@ window.addEventListener('resize', () => {
 });
 
 
-// key is checked server side goober
+// hit like if you think vlieren needs to go outside
 const params = new URLSearchParams(window.location.search);
 if (params.get('levers') === 'true') {
   const leversButton = document.getElementById('levers');
