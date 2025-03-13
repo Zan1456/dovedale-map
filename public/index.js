@@ -1,8 +1,10 @@
+// guys i think vlieren needs to go outside!!
 const canvas = document.querySelector('canvas');
 const players = document.getElementById('players');
 const context = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
-const serverSelect = document.getElementById('server'); // Get the server select element
+const trainInfo = document.getElementById('train-info');
+const serverSelect = document.getElementById('server');
 const TOP_LEFT = { x: -14818, y: -6757 }
 const BOTTOM_RIGHT = { x: 13859, y: 6965 }
 
@@ -11,8 +13,8 @@ const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
 const WORLD_HEIGHT = BOTTOM_RIGHT.y - TOP_LEFT.y;
 
 // Server data tracking
-let serverData = {}; // Object to store data for each server
-let currentServer = 'all'; // Default to showing all servers
+let serverData = {};
+let currentServer = 'all';
 let hoveredPlayer = null;
 
 // Initialize the canvas and context
@@ -35,24 +37,18 @@ serverSelect.addEventListener('change', function () {
   currentServer = this.value;
   drawScene();
 });
-
-// Function to update server list in dropdown - only when servers change
 function updateServerList() {
   const currentServers = Object.keys(serverData);
 
-  // Compare current server list with dropdown options
   let needsUpdate = false;
 
-  // Check if number of options (minus All Servers option) matches current servers
   if (serverSelect.options.length - 1 !== currentServers.length) {
     needsUpdate = true;
   } else {
-    // Check if each server exists in the dropdown
     for (let i = 0; i < currentServers.length; i++) {
       const serverId = currentServers[i];
       let found = false;
 
-      // Start from index 1 to skip "All Servers" option
       for (let j = 1; j < serverSelect.options.length; j++) {
         if (serverSelect.options[j].value === serverId) {
           found = true;
@@ -67,19 +63,14 @@ function updateServerList() {
     }
   }
 
-  // Only update the dropdown if servers have changed
   if (needsUpdate) {
     console.log("Updating server dropdown");
 
-    // Save the currently selected value
     const selectedValue = serverSelect.value;
 
-    // Build new options HTML
     let html = '<option value="all">All Servers</option>';
 
-    // Add an option for each server we've seen
     currentServers.forEach(jobId => {
-      // Try to create a readable server name - use last 6 chars of job ID if available
       const serverName = jobId.length > 6 ?
         `Server ${jobId.substring(jobId.length - 6)}` :
         `Server ${jobId}`;
@@ -87,10 +78,8 @@ function updateServerList() {
       html += `<option value="${jobId}"${selectedValue === jobId ? ' selected' : ''}>${serverName}</option>`;
     });
 
-    // Update the dropdown HTML
     serverSelect.innerHTML = html;
 
-    // Restore the selected value if it still exists, otherwise default to "all"
     if (selectedValue !== 'all' && !currentServers.includes(selectedValue)) {
       serverSelect.value = 'all';
       currentServer = 'all';
@@ -100,32 +89,26 @@ function updateServerList() {
   }
 }
 
-// Function to get all players for the current server selection
 function getAllPlayers() {
   if (currentServer === 'all') {
-    // Combine players from all servers
     return Object.values(serverData).flat();
   } else {
-    // Return players only from the selected server
     return serverData[currentServer] || [];
   }
 }
 
-// Function to convert world coordinates to canvas coordinates
 function worldToCanvas(worldX, worldY) {
-  // Calculate the relative position (0 to 1) in world space
   const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
   const relativeY = (worldY - TOP_LEFT.y) / WORLD_HEIGHT;
 
-  // Convert to canvas pixel coordinates
   return {
     x: relativeX * canvas.width,
     y: relativeY * canvas.height
   };
 }
 
-function getPlayerColour(name, serverId) {
-  if (!name) return '#00FFFF'; // Default cyan color for unnamed players
+function getPlayerColour(name) {
+  if (!name) return '#00FFFF'; // default cyan
 
   const NAME_COLORS = [
     '#FD2943', // Bright red
@@ -138,7 +121,6 @@ function getPlayerColour(name, serverId) {
     '#D7C59A'  // Brick yellow
   ];
 
-  // Direct translation of the Lua code
   function getNameValue(pName) {
     let value = 0;
     for (let index = 1; index <= pName.length; index++) {
@@ -156,15 +138,11 @@ function getPlayerColour(name, serverId) {
     return value;
   }
 
-  // Calculate the name value following the exact Lua logic
   const nameValue = getNameValue(name);
 
-  // Compute the color index exactly as in Lua
   const colorOffset = 0;
   let colorIndex = ((nameValue + colorOffset) % NAME_COLORS.length);
 
-  // Lua's modulo treats negative results differently than JavaScript
-  // This ensures we get the same behavior
   if (colorIndex < 0) {
     colorIndex += NAME_COLORS.length;
   }
@@ -172,61 +150,47 @@ function getPlayerColour(name, serverId) {
   return NAME_COLORS[colorIndex];
 }
 
-// Function to draw the entire scene
 function drawScene() {
-  // Clear the canvas
   context.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw the map image if it's loaded
   if (mapLoaded) {
     context.globalAlpha = 1;
     context.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
   } else {
-    // If map isn't loaded yet, draw a background grid
     drawGrid();
   }
 
-  // Get players based on current server selection
   const playersToShow = getAllPlayers();
 
-  // Update player count
   players.innerHTML = `Players: ${playersToShow.length}`;
 
-  // Draw each player
   for (const player of playersToShow) {
     const worldX = player[0];
     const worldY = player[1];
     const name = player[2];
-    const serverId = player[3];
     const canvasPos = worldToCanvas(worldX, worldY);
 
-    // Check if this is the hovered player
-    const isHovered = hoveredPlayer && hoveredPlayer[2] === name &&
-      (currentServer === 'all' ? hoveredPlayer[3] === serverId : true);
+    const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
 
-    // Draw player dot with a small border for better visibility
-    context.fillStyle = getPlayerColour(name, serverId);
+    context.fillStyle = getPlayerColour(name);
     context.globalAlpha = 1;
 
-    // Draw slightly larger dot if hovered
     const radius = isHovered ? 5.5 : 4;
 
     context.beginPath();
     context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
     context.fill();
 
-    // Add a border to make the dots more visible
     context.strokeStyle = isHovered ? "white" : "black";
     context.lineWidth = isHovered ? 2 : 1;
     context.stroke();
   }
 }
 
-// Function to draw the grid (used when map isn't loaded yet)
 function drawGrid() {
   context.strokeStyle = '#333333';
   context.lineWidth = 1;
-  const gridSize = 500; // World units
+  const gridSize = 500; // world units
 
   for (let x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x += gridSize) {
     const canvasPos = worldToCanvas(x, TOP_LEFT.y);
@@ -252,45 +216,58 @@ canvas.addEventListener('mousemove', (event) => {
   const mouseX = event.clientX - rect.left;
   const mouseY = event.clientY - rect.top;
 
-  // Check if mouse is over any player
   hoveredPlayer = null;
 
-  // Get all players from the current server or all servers
   const allPlayers = getAllPlayers();
 
   for (const player of allPlayers) {
     const worldX = player[0];
     const worldY = player[1];
-    const name = player[2];
-    const serverJobId = player[3]; // Server JobId
     const canvasPos = worldToCanvas(worldX, worldY);
 
-    // Calculate distance from mouse to player
     const distance = Math.sqrt(
       Math.pow(mouseX - canvasPos.x, 2) +
       Math.pow(mouseY - canvasPos.y, 2)
     );
 
-    // If mouse is within 8 pixels of player dot, consider it a hover
     if (distance <= 8) {
       hoveredPlayer = player;
       break;
     }
   }
 
-  // Show/hide tooltip based on hover state
   if (hoveredPlayer) {
-    // Show server info alongside player name if viewing all servers
     const playerName = hoveredPlayer[2] || 'Unknown Player';
     const playerServer = hoveredPlayer[3];
+    const trainData = Array.isArray(hoveredPlayer[4]) ? hoveredPlayer[4] : null;
 
-    if (currentServer === 'all' && playerServer) {
+    document.querySelector('#player .text-xl').textContent = playerName || 'Unknown';
+
+    if (trainData && trainData.length >= 4) {
+      document.querySelector('#destination .text-xl').textContent = trainData[0] || 'Unknown';
+      document.querySelector('#train-name .text-xl').textContent = trainData[1] || 'Unknown';
+      document.querySelector('#headcode .text-xl').textContent = trainData[2] || 'Unknown';
+      document.querySelector('#train-class .text-xl').textContent = trainData[3] || 'Unknown';
+
+      document.querySelectorAll('#tooltip > div').forEach(div => {
+        div.classList.remove('hidden');
+      });
+    } else {
+      document.querySelectorAll('#tooltip > div:not(#player)').forEach(div => {
+        div.classList.add('hidden');
+      });
+    }
+
+    if (currentServer === 'all' && typeof playerServer === 'string') {
       const shortServerId = playerServer.length > 6 ?
         playerServer.substring(playerServer.length - 6) :
         playerServer;
-      tooltip.textContent = `${playerName} (Server ${shortServerId})`;
+
+      document.querySelector('#server .text-xl').textContent = `${shortServerId}`;
+      document.querySelector('#server .text-xl').classList.remove('hidden');
     } else {
-      tooltip.textContent = playerName;
+      // Hide the server info row
+      document.querySelector('#server .text-xl').classList.add('hidden');
     }
 
     tooltip.classList.remove('hidden');
@@ -300,13 +277,11 @@ canvas.addEventListener('mousemove', (event) => {
     tooltip.classList.add('hidden');
   }
 
-  // Redraw scene to highlight hovered player
   drawScene();
 });
 
-// Open websocket
 // const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-// const socket = new WebSocket(`${protocol}${window.location.hostname}:${window.location.port}/ws`);
+// const socket = new WebSocket(`${protocol}${window.location.hostname}:${window.location.port}/ws`); // pointless cos roblox sends data to the public server
 const socket = new WebSocket(`wss://map.dovedale.wiki/ws`);
 
 let timeout;
@@ -322,43 +297,30 @@ socket.onmessage = (event) => {
   timeout && clearTimeout(timeout);
   const receivedData = JSON.parse(event.data);
 
-  const jobId = receivedData.shift() || '???'; // Get server ID
+  const jobId = receivedData.shift() || '???';
 
-  // Initialize this server's data if it doesn't exist
   if (!serverData[jobId]) {
     serverData[jobId] = [];
   }
 
-  // Replace the player data for this specific server only
   serverData[jobId] = receivedData;
-
-  // Update the server selection dropdown
   updateServerList();
-
-  console.log(`Updated players for server ${jobId}, now tracking ${Object.keys(serverData).length} server(s)`);
-
-  // Draw the scene with the updated data
   drawScene();
-
   timeout = setTimeout(clearCanvas, 10_000);
 };
 
-// Handle connection errors
 socket.onerror = (error) => {
   console.error('WebSocket error:', error);
 };
 
-// Handle connection close
 socket.onclose = () => {
   console.log('WebSocket connection closed');
 };
 
-// Handle connection open
 socket.onopen = () => {
   console.log('WebSocket connection opened');
 };
 
-// Initial draw with empty data
 drawScene();
 
 window.addEventListener('resize', () => {

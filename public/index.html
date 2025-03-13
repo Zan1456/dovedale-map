@@ -5,6 +5,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Dovedale Live Map</title>
         <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        />
     </head>
     <body class="bg-zinc-900 text-white text-xl">
         <div class="fixed top-2 left-2 flex gap-3 items-center">
@@ -12,10 +16,6 @@
             <p id="players">Players: N/A</p>
         </div>
         <canvas width="2867.7" height="1372.2"></canvas>
-        <div
-            class="fixed hidden px-2 py-1 bg-zinc-800 bg-opacity-75 text-white rounded text-sm z-50 pointer-events-none"
-            id="tooltip"
-        ></div>
 
         <dialog
             id="dialog"
@@ -47,6 +47,54 @@
                 <button class="bg-zinc-700 px-3 py-1 rounded-lg">Close</button>
             </form>
         </dialog>
+
+        <div
+            id="tooltip"
+            class="pl-3 pr-3.5 py-3 bg-zinc-800 rounded-2xl inline-flex flex-col justify-start items-start gap-2.5 fixed hidden"
+        >
+            <div
+                id="player"
+                class="inline-flex justify-center items-center gap-1.5"
+            >
+                <span class="material-symbols-outlined">person</span>
+                <div class="text-xl">MrToes_guy</div>
+            </div>
+            <div
+                id="destination"
+                class="inline-flex justify-center items-center gap-1.5"
+            >
+                <span class="material-symbols-outlined">location_on</span>
+                <div class="text-xl">Masonfield</div>
+            </div>
+            <div
+                id="train-name"
+                class="inline-flex justify-center items-center gap-1.5"
+            >
+                <span class="material-symbols-outlined">train</span>
+                <div class="text-xl">Class 466</div>
+            </div>
+            <div
+                id="headcode"
+                class="inline-flex justify-center items-center gap-1.5"
+            >
+                <span class="material-symbols-outlined">pin</span>
+                <div class="text-xl">2M30</div>
+            </div>
+            <div
+                id="train-class"
+                class="inline-flex justify-center items-center gap-1.5"
+            >
+                <span class="material-symbols-outlined">tag</span>
+                <div class="text-xl">Passenger</div>
+            </div>
+            <div
+                id="server"
+                class="inline-flex justify-center items-center gap-1.5 hidden"
+            >
+                <span class="material-symbols-outlined">dns</span>
+                <div class="text-xl">2832198b</div>
+            </div>
+        </div>
 
         <div class="fixed bottom-2 left-2 flex gap-3 align-center">
             <button id="levers" class="hidden bg-zinc-700 px-3 py-1 rounded-lg">
