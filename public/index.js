@@ -8,6 +8,8 @@ const serverSelect = document.getElementById('server');
 const TOP_LEFT = { x: -14818, y: -6757 }
 const BOTTOM_RIGHT = { x: 13859, y: 6965 }
 
+const ENABLE_TRAIN_INFO = false;
+
 // Calculate world dimensions
 const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
 const WORLD_HEIGHT = BOTTOM_RIGHT.y - TOP_LEFT.y;
@@ -243,7 +245,7 @@ canvas.addEventListener('mousemove', (event) => {
 
     document.querySelector('#player .text-xl').textContent = playerName || 'Unknown';
 
-    if (trainData && trainData.length >= 4) {
+    if (ENABLE_TRAIN_INFO && trainData && trainData.length >= 4) {
       document.querySelector('#destination .text-xl').textContent = trainData[0] || 'Unknown';
       document.querySelector('#train-name .text-xl').textContent = trainData[1] || 'Unknown';
       document.querySelector('#headcode .text-xl').textContent = trainData[2] || 'Unknown';
