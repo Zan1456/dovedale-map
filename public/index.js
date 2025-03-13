@@ -18,6 +18,7 @@ let lastX = canvas.width / 2;
 let lastY = canvas.height / 2;
 let dragStart = null;
 let isDragging = false;
+let currentScale = 1;
 
 function trackTransforms(ctx) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -43,6 +44,7 @@ function trackTransforms(ctx) {
   const scale = ctx.scale;
   ctx.scale = function (sx, sy) {
     transform = transform.scaleNonUniform(sx, sy);
+    currentScale *= sx;
     return scale.call(ctx, sx, sy);
   };
 
@@ -200,16 +202,15 @@ function drawScene() {
     const canvasPos = worldToCanvas(worldX, worldY);
 
     const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
+    const radius = Math.max((isHovered ? 5.5 : 4) / Math.sqrt(currentScale), 1);
 
     context.fillStyle = getPlayerColour(name);
-    const radius = isHovered ? 5.5 : 4;
-
     context.beginPath();
     context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
     context.fill();
 
     context.strokeStyle = isHovered ? "white" : "black";
-    context.lineWidth = isHovered ? 2 : 1;
+    context.lineWidth = isHovered ? Math.max(1.5 / Math.sqrt(currentScale), 0.5) : Math.max(0.75 / Math.sqrt(currentScale), 0.25);
     context.stroke();
   }
 }
@@ -247,6 +248,7 @@ function updateHoveredPlayer(clientX, clientY) {
 
   hoveredPlayer = null;
   const allPlayers = getAllPlayers();
+  const hoverRadius = 8 / Math.sqrt(currentScale);
 
   for (const player of allPlayers) {
     const worldX = player[0];
@@ -258,7 +260,7 @@ function updateHoveredPlayer(clientX, clientY) {
       Math.pow(transformedPoint.y - canvasPos.y, 2)
     );
 
-    if (distance <= 8) {
+    if (distance <= hoverRadius) {
       hoveredPlayer = player;
       break;
     }
