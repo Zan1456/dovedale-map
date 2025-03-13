@@ -8,7 +8,7 @@ const serverSelect = document.getElementById('servers');
 const TOP_LEFT = { x: -14818, y: -6757 }
 const BOTTOM_RIGHT = { x: 13859, y: 6965 }
 
-const ENABLE_TRAIN_INFO = true;
+const ENABLE_TRAIN_INFO = false;
 
 // Calculate world dimensions
 const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
