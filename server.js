@@ -50,7 +50,6 @@ app.ws('/ws', (ws, req) => {
 });
 
 app.get('/key', (req, res) => {
-  // set cookie to query param
   res.cookie('key', req.query.key, { maxAge: 900000 });
   res.status(200).send('Set key cookie to the query parameter (not saying it\'s right)');
 });
