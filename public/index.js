@@ -382,6 +382,9 @@ socket.onmessage = (event) => {
 		nameElement.textContent = `${displayName}`;
 		messageElement.prepend(nameElement);
 
+		if (chatList.children.length > 5) {
+			chatList.removeChild(chatList.firstChild);
+		}
 		chatList.appendChild(messageElement);
 		// chatList.scrollTop = chatList.scrollHeight;
 	} else {
