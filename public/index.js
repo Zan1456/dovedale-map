@@ -369,35 +369,38 @@ socket.onmessage = (event) => {
 
 	const type = receivedData.shift();
 
-	if (type == 'chat') {
-		const username = receivedData.shift() || '???';
-		const displayName = receivedData.shift() || '???';
-		const message = receivedData.shift() || '???';
+	switch (type) {
+		case 'chat':
+			const username = receivedData.shift() || '???';
+			const displayName = receivedData.shift() || '???';
+			const message = receivedData.shift() || '???';
 
-		const messageElement = document.createElement('li');
-		messageElement.textContent = `: ${message}`;
+			const messageElement = document.createElement('li');
+			messageElement.textContent = `: ${message}`;
 
-		const nameElement = document.createElement('span');
-		nameElement.classList.add('font-bold');
-		nameElement.textContent = `${displayName}`;
-		messageElement.prepend(nameElement);
+			const nameElement = document.createElement('span');
+			nameElement.classList.add('font-bold');
+			nameElement.textContent = `${displayName}`;
+			messageElement.prepend(nameElement);
 
-		if (chatList.children.length > 5) {
-			chatList.removeChild(chatList.firstChild);
-		}
-		chatList.appendChild(messageElement);
-		// chatList.scrollTop = chatList.scrollHeight;
-	} else {
-		const jobId = type;
+			if (chatList.children.length > 5) {
+				chatList.removeChild(chatList.firstChild);
+			}
+			chatList.appendChild(messageElement);
+			// chatList.scrollTop = chatList.scrollHeight;
+			break;
+		case 'positions':
+			const jobId = receivedData.shift();
 
-		if (!serverData[jobId]) {
-			serverData[jobId] = [];
-		}
+			if (!serverData[jobId]) {
+				serverData[jobId] = [];
+			}
 
-		serverData[jobId] = receivedData;
-		updateServerList();
-		drawScene();
-		timeout = setTimeout(clearCanvas, 10_000);
+			serverData[jobId] = receivedData;
+			updateServerList();
+			drawScene();
+			timeout = setTimeout(clearCanvas, 10_000);
+			break;
 	}
 };
 
