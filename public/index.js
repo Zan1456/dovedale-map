@@ -359,6 +359,86 @@ canvas.addEventListener('wheel', function (event) {
 	event.preventDefault();
 });
 
+// Add touch support for mobile devices
+let touchStartX, touchStartY;
+let lastTouchDistance = 0;
+
+canvas.addEventListener('touchstart', function (event) {
+	if (event.touches.length === 1) {
+		const touch = event.touches[0];
+		touchStartX = touch.clientX;
+		touchStartY = touch.clientY;
+		lastX = touch.clientX - canvas.getBoundingClientRect().left;
+		lastY = touch.clientY - canvas.getBoundingClientRect().top;
+		dragStart = context.transformedPoint(lastX, lastY);
+		isDragging = false;
+	} else if (event.touches.length === 2) {
+		// For pinch-to-zoom
+		const touch1 = event.touches[0];
+		const touch2 = event.touches[1];
+		lastTouchDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+	}
+	event.preventDefault();
+});
+
+canvas.addEventListener('touchmove', function (event) {
+	if (event.touches.length === 1 && dragStart) {
+		const touch = event.touches[0];
+		isDragging = true;
+		lastX = touch.clientX - canvas.getBoundingClientRect().left;
+		lastY = touch.clientY - canvas.getBoundingClientRect().top;
+		const point = context.transformedPoint(lastX, lastY);
+		context.translate(point.x - dragStart.x, point.y - dragStart.y);
+		drawScene();
+	} else if (event.touches.length === 2) {
+		// Handle pinch-to-zoom
+		const touch1 = event.touches[0];
+		const touch2 = event.touches[1];
+		const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+
+		if (lastTouchDistance > 0) {
+			const delta = currentDistance > lastTouchDistance ? 1 : -1;
+			const centerX = (touch1.clientX + touch2.clientX) / 2 - canvas.getBoundingClientRect().left;
+			const centerY = (touch1.clientY + touch2.clientY) / 2 - canvas.getBoundingClientRect().top;
+			zoom(delta, centerX, centerY);
+		}
+
+		lastTouchDistance = currentDistance;
+	}
+
+	// Update tooltip for the touch position
+	if (event.touches.length === 1) {
+		const touch = event.touches[0];
+		updateHoveredPlayer(touch.clientX, touch.clientY);
+	}
+
+	event.preventDefault();
+});
+
+canvas.addEventListener('touchend', function (event) {
+	dragStart = null;
+	lastTouchDistance = 0;
+	event.preventDefault();
+});
+
+// Add active state handling for mobile
+canvas.addEventListener('touchend', function (event) {
+	// If it was a tap (not a drag), show tooltip
+	if (!isDragging && event.changedTouches.length === 1) {
+		const touch = event.changedTouches[0];
+		updateHoveredPlayer(touch.clientX, touch.clientY);
+	}
+	dragStart = null;
+	lastTouchDistance = 0;
+	event.preventDefault();
+});
+
+// Update hover hint text for mobile
+const hoverHint = document.getElementById('hover-hint');
+if ('ontouchstart' in window) {
+	hoverHint.textContent = "Tap on a dot to see the player's name";
+}
+
 const socket = new WebSocket(`wss://map.dovedale.wiki/ws`);
 
 let timeout;
@@ -422,13 +502,51 @@ socket.onclose = () => {
 
 socket.onopen = () => {
 	console.log('WebSocket connection opened');
+	console.log('Map version: 16 (fixed aspect ratio)');
 };
 
 drawScene();
 
 window.addEventListener('resize', () => {
+	// Make canvas responsive to window size
+	resizeCanvas();
 	drawScene();
 });
+
+function resizeCanvas() {
+	const transformBeforeResize = context.getTransform();
+
+	if (window.innerWidth < 640) {
+		canvas.style.position = 'relative';
+		canvas.style.zIndex = '0';
+	} else {
+		canvas.style.position = '';
+		canvas.style.zIndex = '';
+	}
+
+	context.setTransform(transformBeforeResize.a, transformBeforeResize.b, transformBeforeResize.c, transformBeforeResize.d, transformBeforeResize.e, transformBeforeResize.f);
+}
+
+// Initial canvas resize
+resizeCanvas();
+
+// Add click handlers for mobile zoom buttons
+const zoomInButton = document.getElementById('zoom-in');
+const zoomOutButton = document.getElementById('zoom-out');
+
+if (zoomInButton && zoomOutButton) {
+	zoomInButton.addEventListener('click', function () {
+		const centerX = canvas.width / 2;
+		const centerY = canvas.height / 2;
+		zoom(1, centerX, centerY);
+	});
+
+	zoomOutButton.addEventListener('click', function () {
+		const centerX = canvas.width / 2;
+		const centerY = canvas.height / 2;
+		zoom(-1, centerX, centerY);
+	});
+}
 
 chatToggle.addEventListener('click', () => {
 	chatList.classList.toggle('hidden');
