@@ -587,6 +587,7 @@ if (window.self !== window.top) {
 	const hoverHint = document.getElementById('hover-hint');
 	popOutButton.classList.remove('hidden');
 	hoverHint.classList.add('hidden');
+	hoverHint.classList.remove('sm:block');
 }
 
 drawScene();
