@@ -13,6 +13,9 @@ const ENABLE_TRAIN_INFO = false;
 
 const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
 const WORLD_HEIGHT = BOTTOM_RIGHT.y - TOP_LEFT.y;
+const WORLD_CENTRE_X = (TOP_LEFT.x + BOTTOM_RIGHT.x) / 2;
+const WORLD_CENTRE_Y = (TOP_LEFT.y + BOTTOM_RIGHT.y) / 2;
+const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
 
 let serverData = {};
 let currentServer = 'all';
@@ -66,6 +69,7 @@ function trackTransforms() {
 }
 
 trackTransforms();
+context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
 
 const mapImage = new Image();
 mapImage.src = 'map.webp';
@@ -456,6 +460,14 @@ if (params.get('levers') === 'true') {
 	dialog.addEventListener('close', () => {
 		dialog.classList.add('hidden');
 	});
+}
+
+// if in iframe then pop-out button is shown
+if (window.self !== window.top) {
+	const popOutButton = document.getElementById('pop-out');
+	const hoverHint = document.getElementById('hover-hint');
+	popOutButton.classList.remove('hidden');
+	hoverHint.classList.add('hidden');
 }
 
 drawScene();
