@@ -12,63 +12,62 @@ app.use(bodyParser.json());
 let webhooks = [];
 
 async function changeLever(box, lever) {
-  console.log(`Changing lever ${lever} in box ${box}`);
-  const response = await axios.post(
-    'https://apis.roblox.com/messaging-service/v1/universes/4252370517/topics/SignalControl',
-    {
-      message: JSON.stringify({
-        message: {
-          box: box,
-          number: lever,
-        },
-        timestamp: Date.now(),
-      }),
-    },
-    {
-      headers: {
-        'x-api-key': process.env.ROBLOX_API_KEY,
-        'Content-Type': 'application/json',
-      },
-    }
-  )
+	console.log(`Changing lever ${lever} in box ${box}`);
+	const response = await axios.post(
+		'https://apis.roblox.com/messaging-service/v1/universes/4252370517/topics/SignalControl',
+		{
+			message: JSON.stringify({
+				message: {
+					box: box,
+					number: lever,
+				},
+				timestamp: Date.now(),
+			}),
+		},
+		{
+			headers: {
+				'x-api-key': process.env.ROBLOX_API_KEY,
+				'Content-Type': 'application/json',
+			},
+		}
+	);
 
-  console.log(`Response status code: ${response.status}`);
+	console.log(`Response status code: ${response.status}`);
 }
 
 // Endpoint to register a new webhook
 app.ws('/ws', (ws, req) => {
-  webhooks.push(ws);
-  ws.on('message', async (message) => {
-    message = JSON.parse(message);
-    if (message.key === "jaidenIsREALLYOldHonestly" && message.box && message.lever) {
-      // await changeLever(message.box, message.lever);
-    }
-  });
-  ws.on('closed', () => {
-    webhooks = webhooks.filter((webhook) => webhook !== ws);
-  });
+	webhooks.push(ws);
+	ws.on('message', async (message) => {
+		message = JSON.parse(message);
+		if (message.key === 'jaidenIsREALLYOldHonestly' && message.box && message.lever) {
+			// await changeLever(message.box, message.lever);
+		}
+	});
+	ws.on('closed', () => {
+		webhooks = webhooks.filter((webhook) => webhook !== ws);
+	});
 });
 
 app.get('/key', (req, res) => {
-  res.cookie('key', req.query.key, { maxAge: 900000 });
-  res.status(200).send('Set key cookie to the query parameter (not saying it\'s right)');
+	res.cookie('key', req.query.key, { maxAge: 900000 });
+	res.status(200).send("Set key cookie to the query parameter (not saying it's right)");
 });
 
 app.get('/status', (req, res) => {
-  res.status(200).send('200 OK');
+	res.status(200).send('200 OK');
 });
 
 // Endpoint to receive data and redirect to webhooks
 app.post('/', (req, res) => {
-
-  const data = req.body;
-  // console.log(`Sending data to websocket(s)`);
-  for (const webhook of webhooks) {
-    webhook.send(JSON.stringify(data));
-  }
-  res.status(200).send('Data received and forwarded to webhooks.');
+	const data = req.body;
+	// console.log(`Sending data to websocket(s)`);
+	for (const webhook of webhooks) {
+		webhook.send(JSON.stringify(data));
+	}
+	res.status(200).send('Data received and forwarded to webhooks.');
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+	console.log(`Server is running on http://localhost:${PORT}`);
 });

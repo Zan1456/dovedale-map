@@ -6,8 +6,8 @@ const serverSelect = document.getElementById('servers');
 const chat = document.getElementById('chat');
 const chatList = document.getElementById('chat-list'); // will only show the latest 5 msgs
 const chatToggle = document.getElementById('chat-toggle');
-const TOP_LEFT = { x: -14818, y: -6757 }
-const BOTTOM_RIGHT = { x: 13859, y: 6965 }
+const TOP_LEFT = { x: -14818, y: -6757 };
+const BOTTOM_RIGHT = { x: 13859, y: 6965 };
 
 const ENABLE_TRAIN_INFO = false;
 
@@ -27,7 +27,7 @@ let isDragging = false;
 let currentScale = 1;
 
 function trackTransforms() {
-	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 	let transform = svg.createSVGMatrix();
 
 	context.getTransform = function () {
@@ -113,14 +113,19 @@ function updateServerList() {
 
 	if (needsUpdate) {
 		const selectedValue = serverSelect.value;
-		let html = '<option value="all">All Servers</option>';
+		let html = '<option value="all">All Servers';
 
-		currentServers.forEach(jobId => {
-			const serverName = jobId.length > 6 ?
-				`Server ${jobId.substring(jobId.length - 6)}` :
-				`Server ${jobId}`;
+		// Add total player count for "All Servers" option
+		const totalPlayers = Object.values(serverData).reduce((count, players) => count + players.length, 0);
+		html += ` (${totalPlayers})`;
+		html += '</option>';
 
-			html += `<option value="${jobId}"${selectedValue === jobId ? ' selected' : ''}>${serverName}</option>`;
+		currentServers.forEach((jobId) => {
+			const serverName = jobId.length > 6 ? `Server ${jobId.substring(jobId.length - 6)}` : `Server ${jobId}`;
+
+			// Add player count for this server
+			const playerCount = serverData[jobId].length;
+			html += `<option value="${jobId}"${selectedValue === jobId ? ' selected' : ''}>${serverName} (${playerCount})</option>`;
 		});
 
 		serverSelect.innerHTML = html;
@@ -148,17 +153,14 @@ function worldToCanvas(worldX, worldY) {
 
 	return {
 		x: relativeX * canvas.width,
-		y: relativeY * canvas.height
+		y: relativeY * canvas.height,
 	};
 }
 
 function getPlayerColour(name) {
 	if (!name) return '#00FFFF';
 
-	const NAME_COLORS = [
-		'#FD2943', '#01A2FF', '#02B857', '#A75EB8',
-		'#F58225', '#F5CD30', '#E8BAC8', '#D7C59A'
-	];
+	const NAME_COLORS = ['#FD2943', '#01A2FF', '#02B857', '#A75EB8', '#F58225', '#F5CD30', '#E8BAC8', '#D7C59A'];
 
 	function getNameValue(pName) {
 		let value = 0;
@@ -179,7 +181,7 @@ function getPlayerColour(name) {
 
 	const nameValue = getNameValue(name);
 	const colorOffset = 0;
-	let colorIndex = ((nameValue + colorOffset) % NAME_COLORS.length);
+	let colorIndex = (nameValue + colorOffset) % NAME_COLORS.length;
 
 	if (colorIndex < 0) {
 		colorIndex += NAME_COLORS.length;
@@ -216,7 +218,7 @@ function drawScene() {
 		context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
 		context.fill();
 
-		context.strokeStyle = isHovered ? "white" : "black";
+		context.strokeStyle = isHovered ? 'white' : 'black';
 		context.lineWidth = isHovered ? Math.max(1.5 / Math.sqrt(currentScale), 0.5) : Math.max(0.75 / Math.sqrt(currentScale), 0.25);
 		context.stroke();
 	}
@@ -253,6 +255,7 @@ function updateHoveredPlayer(clientX, clientY) {
 
 	const transformedPoint = context.transformedPoint(mouseX, mouseY);
 
+	const wasHoveredPlayer = !!hoveredPlayer;
 	hoveredPlayer = null;
 	const allPlayers = getAllPlayers();
 	const hoverRadius = 8 / Math.sqrt(currentScale);
@@ -262,16 +265,16 @@ function updateHoveredPlayer(clientX, clientY) {
 		const worldY = player[1];
 		const canvasPos = worldToCanvas(worldX, worldY);
 
-		const distance = Math.sqrt(
-			Math.pow(transformedPoint.x - canvasPos.x, 2) +
-			Math.pow(transformedPoint.y - canvasPos.y, 2)
-		);
+		const distance = Math.sqrt(Math.pow(transformedPoint.x - canvasPos.x, 2) + Math.pow(transformedPoint.y - canvasPos.y, 2));
 
 		if (distance <= hoverRadius) {
 			hoveredPlayer = player;
+			drawScene();
 			break;
 		}
 	}
+
+	if (!hoveredPlayer && wasHoveredPlayer) drawScene();
 
 	updateTooltip(clientX, clientY);
 }
@@ -285,19 +288,17 @@ function updateTooltip(clientX, clientY) {
 		document.querySelector('#player .text-xl').textContent = playerName || 'Unknown';
 
 		if (ENABLE_TRAIN_INFO && trainData && trainData.length >= 4) {
-			document.querySelectorAll('#tooltip > div').forEach(div => {
+			document.querySelectorAll('#tooltip > div').forEach((div) => {
 				div.classList.remove('hidden');
 			});
 		} else {
-			document.querySelectorAll('#tooltip > div:not(#player):not(#server)').forEach(div => {
+			document.querySelectorAll('#tooltip > div:not(#player):not(#server)').forEach((div) => {
 				div.classList.add('hidden');
 			});
 		}
 
 		if (currentServer === 'all' && typeof playerServer === 'string' && Object.keys(serverData).length !== 1) {
-			const shortServerId = playerServer.length > 6 ?
-				playerServer.substring(playerServer.length - 6) :
-				playerServer;
+			const shortServerId = playerServer.length > 6 ? playerServer.substring(playerServer.length - 6) : playerServer;
 
 			document.querySelector('#server .text-xl').textContent = `${shortServerId}`;
 			document.querySelector('#server').classList.remove('hidden');
