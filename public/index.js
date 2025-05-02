@@ -71,13 +71,21 @@ function trackTransforms() {
 trackTransforms();
 context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
 
-const mapImage = new Image();
-mapImage.src = 'map.webp';
-let mapLoaded = false;
+const mapImageLeft = new Image();
+const mapImageRight = new Image();
+mapImageLeft.src = '/images/map-left.webp';
+mapImageRight.src = '/images/map-right.webp';
+let mapLeftLoaded = false;
+let mapRightLoaded = false;
 
-mapImage.onload = () => {
-	mapLoaded = true;
-	drawScene();
+mapImageLeft.onload = () => {
+	mapLeftLoaded = true;
+	if (mapLeftLoaded && mapRightLoaded) drawScene();
+};
+
+mapImageRight.onload = () => {
+	mapRightLoaded = true;
+	if (mapLeftLoaded && mapRightLoaded) drawScene();
 };
 
 serverSelect.innerHTML = '<option value="all">All Servers</option>';
@@ -195,14 +203,17 @@ function drawScene() {
 	const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
 	context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
 
-	if (mapLoaded) {
-		context.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
+	if (mapLeftLoaded && mapRightLoaded) {
+		const halfWidth = canvas.width / 2;
+		context.drawImage(mapImageLeft, 0, 0, halfWidth, canvas.height);
+		context.drawImage(mapImageRight, halfWidth, 0, halfWidth, canvas.height);
 	} else {
 		drawGrid();
 	}
 
 	const playersToShow = getAllPlayers();
 	players.innerHTML = `Players: ${playersToShow.length}`;
+
 
 	for (const player of playersToShow) {
 		const worldX = player[0];
