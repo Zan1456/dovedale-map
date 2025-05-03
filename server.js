@@ -61,7 +61,7 @@ app.get('/status', (req, res) => {
 // Endpoint to receive data and redirect to webhooks
 app.post('/', (req, res) => {
 	const data = req.body;
-	console.log(`Sending data to websocket(s)`, data);
+	// console.log(`Sending data to websocket(s)`, data);
 	for (const webhook of webhooks) {
 		webhook.send(JSON.stringify(data));
 	}
