@@ -293,7 +293,7 @@ function drawScene() {
 		const canvasPos = worldToCanvas(worldX, worldY);
 
 		const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
-		const radius = Math.max((isHovered ? 5.5 : 4) / Math.sqrt(currentScale), 1);
+		const radius = Math.max((isHovered ? 3 : 1) / Math.sqrt(currentScale), 0.7);
 
 		context.fillStyle = getPlayerColour(name);
 		context.beginPath();
@@ -301,7 +301,7 @@ function drawScene() {
 		context.fill();
 
 		context.strokeStyle = isHovered ? 'white' : 'black';
-		context.lineWidth = isHovered ? Math.max(1.5 / Math.sqrt(currentScale), 0.5) : Math.max(0.75 / Math.sqrt(currentScale), 0.25);
+		context.lineWidth = isHovered ? Math.max(1 / Math.sqrt(currentScale), 0.5) : Math.max(0.5 / Math.sqrt(currentScale), 0.25);
 		context.stroke();
 	}
 }
