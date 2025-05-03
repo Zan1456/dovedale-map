@@ -6,8 +6,35 @@ const serverSelect = document.getElementById('servers');
 const chat = document.getElementById('chat');
 const chatList = document.getElementById('chat-list'); // will only show the latest 5 msgs
 const chatToggle = document.getElementById('chat-toggle');
-const TOP_LEFT = { x: -14818, y: -6757 };
-const BOTTOM_RIGHT = { x: 13859, y: 6965 };
+const TOP_LEFT = { x: -23818, y: -10426 };
+const BOTTOM_RIGHT = { x: 20504, y: 11377 };
+
+
+const mapImageLeft = new Image();
+const mapImageRight = new Image();
+mapImageLeft.src = '/images/map-left.webp';
+mapImageRight.src = '/images/map-right.webp';
+let mapLeftLoaded = false;
+let mapRightLoaded = false;
+
+mapImageLeft.onload = () => {
+	mapLeftLoaded = true;
+	if (mapLeftLoaded && mapRightLoaded) {
+		const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
+		context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
+		drawScene();
+	}
+};
+
+mapImageRight.onload = () => {
+	mapRightLoaded = true;
+	if (mapLeftLoaded && mapRightLoaded) {
+		const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
+		context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
+		drawScene();
+	}
+};
+
 
 const ENABLE_TRAIN_INFO = false;
 
@@ -15,7 +42,6 @@ const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
 const WORLD_HEIGHT = BOTTOM_RIGHT.y - TOP_LEFT.y;
 const WORLD_CENTRE_X = (TOP_LEFT.x + BOTTOM_RIGHT.x) / 2;
 const WORLD_CENTRE_Y = (TOP_LEFT.y + BOTTOM_RIGHT.y) / 2;
-const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
 
 let serverData = {};
 let currentServer = 'all';
@@ -68,31 +94,12 @@ function trackTransforms() {
 	};
 }
 
-trackTransforms();
-context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
-
-const mapImageLeft = new Image();
-const mapImageRight = new Image();
-mapImageLeft.src = '/images/map-left.webp';
-mapImageRight.src = '/images/map-right.webp';
-let mapLeftLoaded = false;
-let mapRightLoaded = false;
-
-mapImageLeft.onload = () => {
-	mapLeftLoaded = true;
-	if (mapLeftLoaded && mapRightLoaded) drawScene();
-};
-
-mapImageRight.onload = () => {
-	mapRightLoaded = true;
-	if (mapLeftLoaded && mapRightLoaded) drawScene();
-};
-
 serverSelect.innerHTML = '<option value="all">All Servers</option>';
 serverSelect.addEventListener('change', function () {
 	currentServer = this.value;
 	drawScene();
 });
+trackTransforms();
 
 function updateServerList() {
 	const currentServers = Object.keys(serverData);
@@ -159,11 +166,30 @@ function worldToCanvas(worldX, worldY) {
 	const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
 	const relativeY = (worldY - TOP_LEFT.y) / WORLD_HEIGHT;
 
+	const mapWidth = mapImageLeft.width + mapImageRight.width;
+	const mapHeight = mapImageLeft.height; // Assuming both images have the same height
+	const mapAspectRatio = mapWidth / mapHeight;
+
+	const canvasAspectRatio = canvas.width / canvas.height;
+	let scaleFactor;
+	if (mapAspectRatio > canvasAspectRatio) {
+		scaleFactor = canvas.width / mapWidth;
+	} else {
+		scaleFactor = canvas.height / mapHeight;
+	}
+
+	const scaledMapWidth = mapWidth * scaleFactor;
+	const scaledMapHeight = mapHeight * scaleFactor;
+
+	const offsetX = (canvas.width - scaledMapWidth) / 2;
+	const offsetY = (canvas.height - scaledMapHeight) / 2;
+
 	return {
-		x: relativeX * canvas.width,
-		y: relativeY * canvas.height,
+		x: offsetX + relativeX * scaledMapWidth,
+		y: offsetY + relativeY * scaledMapHeight,
 	};
 }
+
 
 function getPlayerColour(name) {
 	if (!name) return '#00FFFF';
@@ -199,21 +225,66 @@ function getPlayerColour(name) {
 }
 
 function drawScene() {
+	const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
+
 	const transformedP1 = context.transformedPoint(0, 0);
 	const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
 	context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
 
 	if (mapLeftLoaded && mapRightLoaded) {
-		const halfWidth = canvas.width / 2;
-		context.drawImage(mapImageLeft, 0, 0, halfWidth, canvas.height);
-		context.drawImage(mapImageRight, halfWidth, 0, halfWidth, canvas.height);
+		// Calculate the total map dimensions
+		const mapWidth = mapImageLeft.width + mapImageRight.width;
+		const mapHeight = mapImageLeft.height; // Assuming both images have the same height
+		const mapAspectRatio = mapWidth / mapHeight;
+
+		// Calculate the scaling factor to fit the map within the canvas
+		const canvasAspectRatio = canvas.width / canvas.height;
+		let scaleFactor;
+		if (mapAspectRatio > canvasAspectRatio) {
+			// Fit to canvas width
+			scaleFactor = canvas.width / mapWidth;
+		} else {
+			// Fit to canvas height
+			scaleFactor = canvas.height / mapHeight;
+		}
+
+		// Calculate the scaled dimensions
+		const scaledMapWidth = mapWidth * scaleFactor;
+		const scaledMapHeight = mapHeight * scaleFactor;
+
+		// Center the map on the canvas
+		const offsetX = (canvas.width - scaledMapWidth) / 2;
+		const offsetY = (canvas.height - scaledMapHeight) / 2;
+
+		// Draw the left and right halves of the map
+		context.drawImage(
+			mapImageLeft,
+			0,
+			0,
+			mapImageLeft.width,
+			mapImageLeft.height,
+			offsetX,
+			offsetY,
+			mapImageLeft.width * scaleFactor,
+			scaledMapHeight
+		);
+		context.drawImage(
+			mapImageRight,
+			0,
+			0,
+			mapImageRight.width,
+			mapImageRight.height,
+			offsetX + mapImageLeft.width * scaleFactor,
+			offsetY,
+			mapImageRight.width * scaleFactor,
+			scaledMapHeight
+		);
 	} else {
 		drawGrid();
 	}
 
 	const playersToShow = getAllPlayers();
 	players.innerHTML = `Players: ${playersToShow.length}`;
-
 
 	for (const player of playersToShow) {
 		const worldX = player[0];
@@ -235,29 +306,6 @@ function drawScene() {
 	}
 }
 
-function drawGrid() {
-	context.strokeStyle = '#333333';
-	context.lineWidth = 1;
-	const gridSize = 500;
-
-	for (let x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x += gridSize) {
-		const canvasPos = worldToCanvas(x, TOP_LEFT.y);
-		const canvasPosBottom = worldToCanvas(x, BOTTOM_RIGHT.y);
-		context.beginPath();
-		context.moveTo(canvasPos.x, canvasPos.y);
-		context.lineTo(canvasPosBottom.x, canvasPosBottom.y);
-		context.stroke();
-	}
-
-	for (let y = TOP_LEFT.y; y <= BOTTOM_RIGHT.y; y += gridSize) {
-		const canvasPos = worldToCanvas(TOP_LEFT.x, y);
-		const canvasPosRight = worldToCanvas(BOTTOM_RIGHT.x, y);
-		context.beginPath();
-		context.moveTo(canvasPos.x, canvasPos.y);
-		context.lineTo(canvasPosRight.x, canvasPosRight.y);
-		context.stroke();
-	}
-}
 
 function updateHoveredPlayer(clientX, clientY) {
 	const rect = canvas.getBoundingClientRect();
