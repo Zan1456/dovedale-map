@@ -62,6 +62,7 @@ app.get('/status', (req, res) => {
 app.post('/', (req, res) => {
 	const data = req.body;
 	// console.log(`Sending data to websocket(s)`, data);
+	if (data[0] == "chat") return;
 	for (const webhook of webhooks) {
 		webhook.send(JSON.stringify(data));
 	}

@@ -1,14 +1,12 @@
 const canvas = document.querySelector('canvas');
 const players = document.getElementById('players');
 const context = canvas.getContext('2d');
+trackTransforms()
 const tooltip = document.getElementById('tooltip');
 const serverSelect = document.getElementById('servers');
-const chat = document.getElementById('chat');
-const chatList = document.getElementById('chat-list'); // will only show the latest 5 msgs
-const chatToggle = document.getElementById('chat-toggle');
+
 const TOP_LEFT = { x: -23818, y: -10426 };
 const BOTTOM_RIGHT = { x: 20504, y: 11377 };
-
 
 const mapImageLeft = new Image();
 const mapImageRight = new Image();
@@ -34,7 +32,6 @@ mapImageRight.onload = () => {
 		drawScene();
 	}
 };
-
 
 const ENABLE_TRAIN_INFO = false;
 
@@ -99,7 +96,6 @@ serverSelect.addEventListener('change', function () {
 	currentServer = this.value;
 	drawScene();
 });
-trackTransforms();
 
 function updateServerList() {
 	const currentServers = Object.keys(serverData);
@@ -190,7 +186,6 @@ function worldToCanvas(worldX, worldY) {
 	};
 }
 
-
 function getPlayerColour(name) {
 	if (!name) return '#00FFFF';
 
@@ -224,9 +219,31 @@ function getPlayerColour(name) {
 	return NAME_COLORS[colorIndex];
 }
 
-function drawScene() {
-	const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
+function drawGrid() {
+	context.strokeStyle = '#333333';
+	context.lineWidth = 1;
+	const gridSize = 500;
 
+	for (let x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x += gridSize) {
+		const canvasPos = worldToCanvas(x, TOP_LEFT.y);
+		const canvasPosBottom = worldToCanvas(x, BOTTOM_RIGHT.y);
+		context.beginPath();
+		context.moveTo(canvasPos.x, canvasPos.y);
+		context.lineTo(canvasPosBottom.x, canvasPosBottom.y);
+		context.stroke();
+	}
+
+	for (let y = TOP_LEFT.y; y <= BOTTOM_RIGHT.y; y += gridSize) {
+		const canvasPos = worldToCanvas(TOP_LEFT.x, y);
+		const canvasPosRight = worldToCanvas(BOTTOM_RIGHT.x, y);
+		context.beginPath();
+		context.moveTo(canvasPos.x, canvasPos.y);
+		context.lineTo(canvasPosRight.x, canvasPosRight.y);
+		context.stroke();
+	}
+}
+
+function drawScene() {
 	const transformedP1 = context.transformedPoint(0, 0);
 	const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
 	context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
@@ -293,19 +310,25 @@ function drawScene() {
 		const canvasPos = worldToCanvas(worldX, worldY);
 
 		const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
-		const radius = Math.max((isHovered ? 3 : 1) / Math.sqrt(currentScale), 0.7);
 
+		// New scaling logic
+		const baseRadius = isHovered ? 2.5 : 2;
+		const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4)); // Use a power of 0.4 for more gradual scaling
+		const radius = baseRadius * scaleFactor;
+
+		// Draw the dot
 		context.fillStyle = getPlayerColour(name);
 		context.beginPath();
 		context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
 		context.fill();
 
+		// Draw the outline
 		context.strokeStyle = isHovered ? 'white' : 'black';
-		context.lineWidth = isHovered ? Math.max(1 / Math.sqrt(currentScale), 0.5) : Math.max(0.5 / Math.sqrt(currentScale), 0.25);
+		const outlineWidth = (isHovered ? 0.7 : 0.4) * scaleFactor;
+		context.lineWidth = Math.max(outlineWidth, 0.25);
 		context.stroke();
 	}
 }
-
 
 function updateHoveredPlayer(clientX, clientY) {
 	const rect = canvas.getBoundingClientRect();
@@ -317,7 +340,7 @@ function updateHoveredPlayer(clientX, clientY) {
 	const wasHoveredPlayer = !!hoveredPlayer;
 	hoveredPlayer = null;
 	const allPlayers = getAllPlayers();
-	const hoverRadius = 8 / Math.sqrt(currentScale);
+	const hoverRadius = 3 / Math.sqrt(currentScale);
 
 	for (const player of allPlayers) {
 		const worldX = player[0];
@@ -513,38 +536,17 @@ socket.onmessage = (event) => {
 
 	const type = receivedData.shift();
 
-	switch (type) {
-		case 'chat':
-			const username = receivedData.shift() || '???';
-			const displayName = receivedData.shift() || '???';
-			const message = receivedData.shift() || '???';
+	if (type === 'positions') {
+		const jobId = receivedData.shift();
 
-			const messageElement = document.createElement('li');
-			messageElement.textContent = `: ${message}`;
+		if (!serverData[jobId]) {
+			serverData[jobId] = [];
+		}
 
-			const nameElement = document.createElement('span');
-			nameElement.classList.add('font-bold');
-			nameElement.textContent = `${displayName}`;
-			messageElement.prepend(nameElement);
-
-			if (chatList.children.length > 5) {
-				chatList.removeChild(chatList.firstChild);
-			}
-			chatList.appendChild(messageElement);
-			// chatList.scrollTop = chatList.scrollHeight;
-			break;
-		case 'positions':
-			const jobId = receivedData.shift();
-
-			if (!serverData[jobId]) {
-				serverData[jobId] = [];
-			}
-
-			serverData[jobId] = receivedData;
-			updateServerList();
-			drawScene();
-			timeout = setTimeout(clearCanvas, 10_000);
-			break;
+		serverData[jobId] = receivedData;
+		updateServerList();
+		drawScene();
+		timeout = setTimeout(clearCanvas, 10_000);
 	}
 };
 
@@ -561,7 +563,6 @@ socket.onclose = () => {
 
 socket.onopen = () => {
 	console.log('WebSocket connection opened');
-	console.log('Map version: 16 (fixed aspect ratio)');
 };
 
 drawScene();
@@ -607,12 +608,6 @@ if (zoomInButton && zoomOutButton) {
 	});
 }
 
-chatToggle.addEventListener('click', () => {
-	chatList.classList.toggle('hidden');
-	chatToggle.querySelector('i').innerHTML = chatList.classList.contains('hidden') ? 'add' : 'remove';
-});
-
-// drop a like if you think vlieren needs to go outside
 const params = new URLSearchParams(window.location.search);
 if (params.get('levers') === 'true') {
 	const leversButton = document.getElementById('levers');
