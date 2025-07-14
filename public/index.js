@@ -14,10 +14,10 @@ const WORLD_CENTRE_X = (TOP_LEFT.x + BOTTOM_RIGHT.x) / 2;
 const WORLD_CENTRE_Y = (TOP_LEFT.y + BOTTOM_RIGHT.y) / 2;
 const ENABLE_TRAIN_INFO = false;
 
-// Map configuration for 16 images (4x4 grid)
+// Map configuration for 16 images (1x16 grid)
 const MAP_CONFIG = {
-    rows: 1,    // 4 rows for 4x4 layout
-    cols: 16,    // 4 columns for 4x4 layout
+    rows: 1,    // 1 row for 1x16 layout
+    cols: 16,    // 16 columns for 1x16 layout
     totalWidth: 28680,  // Adjust based on your actual map dimensions
     totalHeight: 13724  // Adjust based on your actual map dimensions
 };
@@ -71,6 +71,10 @@ trackTransforms();
 
 // Load map images
 function initializeMap() {
+    // Ensure canvas is properly sized
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
     const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
     context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
     drawScene();
@@ -294,5 +298,7 @@ function drawScene() {
 }
 
 // Initialize
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 resizeCanvas();
 drawScene();
