@@ -16,10 +16,10 @@ const ENABLE_TRAIN_INFO = false;
 
 // Map configuration for 16 images (4x4 grid)
 const MAP_CONFIG = {
-    rows: 4,    // 4 rows for 4x4 layout
-    cols: 4,    // 4 columns for 4x4 layout
-    totalWidth: 4096,  // Adjust based on your actual map dimensions
-    totalHeight: 4096  // Adjust based on your actual map dimensions
+    rows: 1,    // 4 rows for 4x4 layout
+    cols: 16,    // 4 columns for 4x4 layout
+    totalWidth: 28680,  // Adjust based on your actual map dimensions
+    totalHeight: 13724  // Adjust based on your actual map dimensions
 };
 
 // Map images array
