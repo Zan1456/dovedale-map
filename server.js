@@ -12,6 +12,7 @@ app.use(bodyParser.json());
 let webhooks = [];
 
 async function postToWebhook(message) {
+	console.log(`Posting to webhook: ${message}`);
   try {
     await axios.post("https://discord.com/api/webhooks/1394424580789108908/kf0Fta-QfGa22sWn-AeFHJW9sFQQT2R4Ay2xrnYgHZBl8bgtLIh6VKckCuxvQqHQmfT7", {
       content: message // Or whatever payload your webhook expects
@@ -44,6 +45,8 @@ async function changeLever(box, lever) {
 	);
 	postToWebhook(`Response status code: ${response.status}`);
 }
+postToWebhook(`Using Roblox secret: ${ROBLOX_SECRET}`);
+
 
 // Endpoint to register WebSocket clients
 app.ws('/ws', (ws, req) => {
