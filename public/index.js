@@ -18,8 +18,8 @@ const ENABLE_TRAIN_INFO = false;
 const MAP_CONFIG = {
     rows: 1,
     cols: 16,
-    totalWidth: 4096,
-    totalHeight: 4096
+    totalWidth: 28680,
+    totalHeight: 13724
 };
 
 // Map images array
@@ -33,7 +33,7 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
     for (let col = 0; col < MAP_CONFIG.cols; col++) {
         const img = new Image();
         // Adjust the path pattern based on your naming convention
-        img.src = `/images/map-${row}-${col}.webp`; // or map-row${row}-col${col}.webp
+        img.src = `/images/row-${row}-column-${col}.png`; // or map-row${row}-col${col}.webp
         
         img.onload = () => {
             loadedImages++;
