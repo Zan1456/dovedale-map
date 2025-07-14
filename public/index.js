@@ -45,8 +45,9 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 			loadedImages++;
 			if (loadedImages === 1) {
 				initializeMap(); 
+			}else{
+				drawScene();
 			}
-			drawScene();
 		};
 
 		img.onerror = () => {
@@ -321,47 +322,43 @@ function drawScene() {
     const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
     context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
 
-    if (loadedImages === totalImages) {
-        const mapWidth = MAP_CONFIG.totalWidth;
-        const mapHeight = MAP_CONFIG.totalHeight;
-        const mapAspectRatio = mapWidth / mapHeight;
-        const canvasAspectRatio = canvas.width / canvas.height;
+	const mapWidth = MAP_CONFIG.totalWidth;
+	const mapHeight = MAP_CONFIG.totalHeight;
+	const mapAspectRatio = mapWidth / mapHeight;
+	const canvasAspectRatio = canvas.width / canvas.height;
 
-        const scaleFactor = mapAspectRatio > canvasAspectRatio ? 
-            canvas.width / mapWidth : canvas.height / mapHeight;
+	const scaleFactor = mapAspectRatio > canvasAspectRatio ? 
+		canvas.width / mapWidth : canvas.height / mapHeight;
 
-        const scaledMapWidth = mapWidth * scaleFactor;
-        const scaledMapHeight = mapHeight * scaleFactor;
-        const offsetX = (canvas.width - scaledMapWidth) / 2;
-        const offsetY = (canvas.height - scaledMapHeight) / 2;
+	const scaledMapWidth = mapWidth * scaleFactor;
+	const scaledMapHeight = mapHeight * scaleFactor;
+	const offsetX = (canvas.width - scaledMapWidth) / 2;
+	const offsetY = (canvas.height - scaledMapHeight) / 2;
 
-        const chunkWidth = mapWidth / MAP_CONFIG.cols;
-        const chunkHeight = mapHeight / MAP_CONFIG.rows;
-        const scaledChunkWidth = chunkWidth * scaleFactor;
-        const scaledChunkHeight = chunkHeight * scaleFactor;
+	const chunkWidth = mapWidth / MAP_CONFIG.cols;
+	const chunkHeight = mapHeight / MAP_CONFIG.rows;
+	const scaledChunkWidth = chunkWidth * scaleFactor;
+	const scaledChunkHeight = chunkHeight * scaleFactor;
 
-        for (let row = 0; row < MAP_CONFIG.rows; row++) {
-            for (let col = 0; col < MAP_CONFIG.cols; col++) {
-                const img = mapImages[row][col];
-                if (img && img.complete) {
-                    const destX = offsetX + col * scaledChunkWidth;
-                    const destY = offsetY + row * scaledChunkHeight;
+	for (let row = 0; row < MAP_CONFIG.rows; row++) {
+		for (let col = 0; col < MAP_CONFIG.cols; col++) {
+			const img = mapImages[row][col];
+			if (img && img.complete) {
+				const destX = offsetX + col * scaledChunkWidth;
+				const destY = offsetY + row * scaledChunkHeight;
 
-                    const overlap = 0.5;
-                    const drawWidth = scaledChunkWidth + (col < MAP_CONFIG.cols - 1 ? overlap : 0);
-                    const drawHeight = scaledChunkHeight + (row < MAP_CONFIG.rows - 1 ? overlap : 0);
+				const overlap = 0.5;
+				const drawWidth = scaledChunkWidth + (col < MAP_CONFIG.cols - 1 ? overlap : 0);
+				const drawHeight = scaledChunkHeight + (row < MAP_CONFIG.rows - 1 ? overlap : 0);
 
-                    context.drawImage(
-                        img,
-                        0, 0, img.width, img.height,
-                        destX, destY, drawWidth, drawHeight
-                    );
-                }
-            }
-        }
-    } else {
-        drawGrid();
-    }
+				context.drawImage(
+					img,
+					0, 0, img.width, img.height,
+					destX, destY, drawWidth, drawHeight
+				);
+			}
+		}
+	}
 
     const playersToShow = getAllPlayers();
     players.innerHTML = `Players: ${playersToShow.length}`;
