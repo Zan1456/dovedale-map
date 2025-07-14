@@ -375,9 +375,9 @@ function drawScene() {
                 }
             }
         }
-    } else {
-        drawGrid();
     }
+
+	drawGrid();
 
     const playersToShow = getAllPlayers();
     players.innerHTML = `Players: ${playersToShow.length}`;
