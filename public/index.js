@@ -1,3 +1,10 @@
+// DOM elements
+const canvas = document.querySelector('canvas');
+const players = document.getElementById('players');
+const context = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+const serverSelect = document.getElementById('servers');
+
 // State variables
 let serverData = {};
 let currentServer = 'all';
@@ -9,13 +16,6 @@ let isDragging = false;
 let currentScale = 1;
 let touchStartX, touchStartY;
 let lastTouchDistance = 0;
-
-// DOM elements
-const canvas = document.querySelector('canvas');
-const players = document.getElementById('players');
-const context = canvas.getContext('2d');
-const tooltip = document.getElementById('tooltip');
-const serverSelect = document.getElementById('servers');
 
 // Map configuration
 const TOP_LEFT = { x: -23818, y: -10426 };
