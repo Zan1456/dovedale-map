@@ -4,6 +4,7 @@ const axios = require('axios');
 const app = express();
 const expressWs = require('express-ws')(app);
 const PORT = process.env.PORT || 3000;
+const ROBLOX_SECRET = process.env.ROBLOX_OTHER_KEY
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -61,21 +62,32 @@ app.get('/status', (req, res) => {
 });
 
 app.post('/positions', (req, res) => {
-	const data = req.body;
+    const data = req.body;
 
-	webhooks = webhooks.filter((ws) => {
-		if (ws.readyState === ws.OPEN) {
-			try {
-				ws.send(JSON.stringify(data));
-				return true;
-			} catch (err) {
-				console.error('Error sending to WebSocket client:', err);
-			}
-		}
-		return false;
-	});
+    // Check if the key matches
+    if (data.key !== ROBLOX_SECRET) {
+        console.log('❌ Invalid key received in /positions');
+        return res.status(401).send('Unauthorized: Invalid key');
+    }
 
-	res.status(200).send('Data broadcasted to all WebSocket clients.');
+    // Remove the key before broadcasting (so clients don’t see it)
+    delete data.key;
+
+    // Broadcast to all WebSocket clients
+    webhooks = webhooks.filter((ws) => {
+        if (ws.readyState === ws.OPEN) {
+            try {
+                ws.send(JSON.stringify(data));
+                return true;
+            } catch (err) {
+                console.error('Error sending to WebSocket client:', err);
+            }
+        }
+        return false;
+    });
+
+    console.log('✅ Data from Roblox accepted and broadcasted');
+    res.status(200).send('Data broadcasted to all WebSocket clients.');
 });
 
 app.listen(PORT, () => {
