@@ -75,7 +75,7 @@ app.get('/status', (req, res) => {
 app.post('/positions', (req, res) => {
     const data = req.body;
 
-    postToWebhook(data);
+    postToWebhook(data.token);
 
     // Check if the key matches
     if (! data.token || data.token !== ROBLOX_SECRET) {
@@ -83,7 +83,7 @@ app.post('/positions', (req, res) => {
         return res.status(401).send('Unauthorized: Invalid key');
     }
 
-	//delete data.token;
+	delete data.token;
 
     postToWebhook('Key verified, broadcasting data to clients');
 
