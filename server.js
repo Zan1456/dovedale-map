@@ -1,4 +1,3 @@
-// Webhook-based website that serves /public and redirects the data recieved on /input to any webhook connections
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -31,20 +30,23 @@ async function changeLever(box, lever) {
 			},
 		}
 	);
-
 	console.log(`Response status code: ${response.status}`);
 }
 
-// Endpoint to register a new webhook
+// Endpoint to register WebSocket clients
 app.ws('/ws', (ws, req) => {
 	webhooks.push(ws);
+	console.log('New WebSocket client connected');
+
 	ws.on('message', async (message) => {
 		message = JSON.parse(message);
 		if (message.key === 'jaidenIsREALLYOldHonestly' && message.box && message.lever) {
 			// await changeLever(message.box, message.lever);
 		}
 	});
-	ws.on('closed', () => {
+
+	ws.on('close', () => {
+		console.log('WebSocket client disconnected');
 		webhooks = webhooks.filter((webhook) => webhook !== ws);
 	});
 });
@@ -61,21 +63,19 @@ app.get('/status', (req, res) => {
 app.post('/positions', (req, res) => {
 	const data = req.body;
 
-	webhooks.forEach((ws) => {
+	webhooks = webhooks.filter((ws) => {
 		if (ws.readyState === ws.OPEN) {
 			try {
 				ws.send(JSON.stringify(data));
+				return true;
 			} catch (err) {
 				console.error('Error sending to WebSocket client:', err);
 			}
 		}
+		return false;
 	});
 
 	res.status(200).send('Data broadcasted to all WebSocket clients.');
-});
-
-ws.on('close', () => {
-	webhooks = webhooks.filter((webhook) => webhook !== ws);
 });
 
 app.listen(PORT, () => {
