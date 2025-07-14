@@ -14,13 +14,45 @@ const WORLD_CENTRE_X = (TOP_LEFT.x + BOTTOM_RIGHT.x) / 2;
 const WORLD_CENTRE_Y = (TOP_LEFT.y + BOTTOM_RIGHT.y) / 2;
 const ENABLE_TRAIN_INFO = false;
 
-// Map images
-const mapImageLeft = new Image();
-const mapImageRight = new Image();
-mapImageLeft.src = '/images/map-left.webp';
-mapImageRight.src = '/images/map-right.webp';
-let mapLeftLoaded = false;
-let mapRightLoaded = false;
+// Map configuration for 16 images (4x4 grid)
+const MAP_CONFIG = {
+    rows: 1,
+    cols: 16,
+    totalWidth: 4096,
+    totalHeight: 4096
+};
+
+// Map images array
+const mapImages = [];
+let loadedImages = 0;
+const totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
+
+// Initialize map images array
+for (let row = 0; row < MAP_CONFIG.rows; row++) {
+    mapImages[row] = [];
+    for (let col = 0; col < MAP_CONFIG.cols; col++) {
+        const img = new Image();
+        // Adjust the path pattern based on your naming convention
+        img.src = `/images/map-${row}-${col}.webp`; // or map-row${row}-col${col}.webp
+        
+        img.onload = () => {
+            loadedImages++;
+            if (loadedImages === totalImages) {
+                initializeMap();
+            }
+        };
+        
+        img.onerror = () => {
+            console.error(`Failed to load image: ${img.src}`);
+            loadedImages++;
+            if (loadedImages === totalImages) {
+                initializeMap();
+            }
+        };
+        
+        mapImages[row][col] = img;
+    }
+}
 
 // State variables
 let serverData = {};
@@ -43,16 +75,6 @@ function initializeMap() {
     context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
     drawScene();
 }
-
-mapImageLeft.onload = () => {
-    mapLeftLoaded = true;
-    if (mapLeftLoaded && mapRightLoaded) initializeMap();
-};
-
-mapImageRight.onload = () => {
-    mapRightLoaded = true;
-    if (mapLeftLoaded && mapRightLoaded) initializeMap();
-};
 
 // Transform tracking system
 function trackTransforms() {
@@ -136,8 +158,8 @@ function worldToCanvas(worldX, worldY) {
     const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
     const relativeY = (worldY - TOP_LEFT.y) / WORLD_HEIGHT;
 
-    const mapWidth = mapImageLeft.width + mapImageRight.width;
-    const mapHeight = mapImageLeft.height;
+    const mapWidth = MAP_CONFIG.totalWidth;
+    const mapHeight = MAP_CONFIG.totalHeight;
     const mapAspectRatio = mapWidth / mapHeight;
     const canvasAspectRatio = canvas.width / canvas.height;
     
@@ -203,9 +225,9 @@ function drawScene() {
     const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
     context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
 
-    if (mapLeftLoaded && mapRightLoaded) {
-        const mapWidth = mapImageLeft.width + mapImageRight.width;
-        const mapHeight = mapImageLeft.height;
+    if (loadedImages === totalImages) {
+        const mapWidth = MAP_CONFIG.totalWidth;
+        const mapHeight = MAP_CONFIG.totalHeight;
         const mapAspectRatio = mapWidth / mapHeight;
         const canvasAspectRatio = canvas.width / canvas.height;
         
@@ -217,10 +239,28 @@ function drawScene() {
         const offsetX = (canvas.width - scaledMapWidth) / 2;
         const offsetY = (canvas.height - scaledMapHeight) / 2;
 
-        context.drawImage(mapImageLeft, 0, 0, mapImageLeft.width, mapImageLeft.height,
-            offsetX, offsetY, mapImageLeft.width * scaleFactor, scaledMapHeight);
-        context.drawImage(mapImageRight, 0, 0, mapImageRight.width, mapImageRight.height,
-            offsetX + mapImageLeft.width * scaleFactor, offsetY, mapImageRight.width * scaleFactor, scaledMapHeight);
+        // Calculate chunk dimensions
+        const chunkWidth = mapWidth / MAP_CONFIG.cols;
+        const chunkHeight = mapHeight / MAP_CONFIG.rows;
+        const scaledChunkWidth = chunkWidth * scaleFactor;
+        const scaledChunkHeight = chunkHeight * scaleFactor;
+
+        // Draw each chunk
+        for (let row = 0; row < MAP_CONFIG.rows; row++) {
+            for (let col = 0; col < MAP_CONFIG.cols; col++) {
+                const img = mapImages[row][col];
+                if (img && img.complete) {
+                    const destX = offsetX + col * scaledChunkWidth;
+                    const destY = offsetY + row * scaledChunkHeight;
+                    
+                    context.drawImage(
+                        img,
+                        0, 0, img.width, img.height,
+                        destX, destY, scaledChunkWidth, scaledChunkHeight
+                    );
+                }
+            }
+        }
     } else {
         drawGrid();
     }
@@ -246,276 +286,6 @@ function drawScene() {
         context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
         context.stroke();
     });
-}
-
-// Hover and tooltip handling
-function updateHoveredPlayer(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = clientX - rect.left;
-    const mouseY = clientY - rect.top;
-    const transformedPoint = context.transformedPoint(mouseX, mouseY);
-    
-    const wasHoveredPlayer = !!hoveredPlayer;
-    hoveredPlayer = null;
-    const hoverRadius = 3 / Math.sqrt(currentScale);
-
-    for (const player of getAllPlayers()) {
-        const [worldX, worldY] = player;
-        const canvasPos = worldToCanvas(worldX, worldY);
-        const distance = Math.sqrt(
-            Math.pow(transformedPoint.x - canvasPos.x, 2) + 
-            Math.pow(transformedPoint.y - canvasPos.y, 2)
-        );
-
-        if (distance <= hoverRadius) {
-            hoveredPlayer = player;
-            drawScene();
-            break;
-        }
-    }
-
-    if (!hoveredPlayer && wasHoveredPlayer) drawScene();
-    updateTooltip(clientX, clientY);
-}
-
-function updateTooltip(clientX, clientY) {
-    if (hoveredPlayer) {
-        const [, , playerName, playerServer, trainData] = hoveredPlayer;
-        
-        document.querySelector('#player .text-xl').textContent = playerName || 'Unknown';
-
-        if (ENABLE_TRAIN_INFO && Array.isArray(trainData) && trainData.length >= 4) {
-            document.querySelectorAll('#tooltip > div').forEach(div => div.classList.remove('hidden'));
-        } else {
-            document.querySelectorAll('#tooltip > div:not(#player):not(#server)').forEach(div => div.classList.add('hidden'));
-        }
-
-        if (currentServer === 'all' && typeof playerServer === 'string' && Object.keys(serverData).length !== 1) {
-            const shortServerId = playerServer.length > 6 ? playerServer.substring(playerServer.length - 6) : playerServer;
-            document.querySelector('#server .text-xl').textContent = shortServerId;
-            document.querySelector('#server').classList.remove('hidden');
-        } else {
-            document.querySelector('#server').classList.add('hidden');
-        }
-
-        tooltip.classList.remove('hidden');
-        tooltip.style.left = `${clientX + 10}px`;
-        tooltip.style.top = `${clientY + 10}px`;
-    } else {
-        tooltip.classList.add('hidden');
-    }
-}
-
-// Zoom functionality
-function zoom(clicks, centerX, centerY) {
-    const factor = Math.pow(1.1, clicks);
-    const pt = context.transformedPoint(centerX, centerY);
-    context.translate(pt.x, pt.y);
-    context.scale(factor, factor);
-    context.translate(-pt.x, -pt.y);
-    drawScene();
-}
-
-// Event listeners
-serverSelect.innerHTML = '<option value="all">All Servers</option>';
-serverSelect.addEventListener('change', function() {
-    currentServer = this.value;
-    drawScene();
-});
-
-// Mouse events
-canvas.addEventListener('mousedown', event => {
-    lastX = event.offsetX;
-    lastY = event.offsetY;
-    dragStart = context.transformedPoint(lastX, lastY);
-    isDragging = false;
-});
-
-canvas.addEventListener('mousemove', event => {
-    lastX = event.offsetX;
-    lastY = event.offsetY;
-
-    if (dragStart) {
-        isDragging = true;
-        const point = context.transformedPoint(lastX, lastY);
-        context.translate(point.x - dragStart.x, point.y - dragStart.y);
-        drawScene();
-    }
-
-    updateHoveredPlayer(event.clientX, event.clientY);
-});
-
-canvas.addEventListener('mouseup', event => {
-    if (!isDragging && dragStart) {
-        zoom(event.shiftKey ? -1 : 1, lastX, lastY);
-    }
-    dragStart = null;
-});
-
-canvas.addEventListener('wheel', event => {
-    const delta = event.deltaY > 0 ? -1 : 1;
-    zoom(delta, event.offsetX, event.offsetY);
-    event.preventDefault();
-});
-
-// Touch events
-canvas.addEventListener('touchstart', event => {
-    if (event.touches.length === 1) {
-        const touch = event.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        lastX = touch.clientX - canvas.getBoundingClientRect().left;
-        lastY = touch.clientY - canvas.getBoundingClientRect().top;
-        dragStart = context.transformedPoint(lastX, lastY);
-        isDragging = false;
-    } else if (event.touches.length === 2) {
-        const touch1 = event.touches[0];
-        const touch2 = event.touches[1];
-        lastTouchDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
-    }
-    event.preventDefault();
-});
-
-canvas.addEventListener('touchmove', event => {
-    if (event.touches.length === 1 && dragStart) {
-        const touch = event.touches[0];
-        isDragging = true;
-        lastX = touch.clientX - canvas.getBoundingClientRect().left;
-        lastY = touch.clientY - canvas.getBoundingClientRect().top;
-        const point = context.transformedPoint(lastX, lastY);
-        context.translate(point.x - dragStart.x, point.y - dragStart.y);
-        drawScene();
-    } else if (event.touches.length === 2) {
-        const touch1 = event.touches[0];
-        const touch2 = event.touches[1];
-        const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
-
-        if (lastTouchDistance > 0) {
-            const delta = currentDistance > lastTouchDistance ? 1 : -1;
-            const centerX = (touch1.clientX + touch2.clientX) / 2 - canvas.getBoundingClientRect().left;
-            const centerY = (touch1.clientY + touch2.clientY) / 2 - canvas.getBoundingClientRect().top;
-            zoom(delta, centerX, centerY);
-        }
-        lastTouchDistance = currentDistance;
-    }
-
-    // Update tooltip for single touch
-    if (event.touches.length === 1) {
-        const touch = event.touches[0];
-        updateHoveredPlayer(touch.clientX, touch.clientY);
-    }
-
-    event.preventDefault();
-});
-
-canvas.addEventListener('touchend', event => {
-    if (!isDragging && event.changedTouches.length === 1) {
-        const touch = event.changedTouches[0];
-        updateHoveredPlayer(touch.clientX, touch.clientY);
-    }
-    dragStart = null;
-    lastTouchDistance = 0;
-    event.preventDefault();
-});
-
-// WebSocket connection
-const socket = new WebSocket('wss://map.dovedale.wiki/ws');
-let timeout;
-
-function clearCanvas() {
-    serverData = {};
-    updateServerList();
-    drawScene();
-}
-
-socket.onmessage = event => {
-    timeout && clearTimeout(timeout);
-    const receivedData = JSON.parse(event.data);
-    const type = receivedData.shift();
-
-    if (type === 'positions') {
-        const jobId = receivedData.shift();
-        serverData[jobId] = receivedData;
-        updateServerList();
-        drawScene();
-        timeout = setTimeout(clearCanvas, 10000);
-    }
-};
-
-socket.onerror = error => console.error('WebSocket error:', error);
-socket.onclose = () => {
-    console.log('WebSocket connection closed');
-    setTimeout(() => window.location.reload(), 1000);
-};
-socket.onopen = () => console.log('WebSocket connection opened');
-
-// Responsive canvas
-function resizeCanvas() {
-    const transformBeforeResize = context.getTransform();
-    
-    if (window.innerWidth < 640) {
-        canvas.style.position = 'relative';
-        canvas.style.zIndex = '0';
-    } else {
-        canvas.style.position = '';
-        canvas.style.zIndex = '';
-    }
-    
-    context.setTransform(transformBeforeResize.a, transformBeforeResize.b, transformBeforeResize.c, 
-        transformBeforeResize.d, transformBeforeResize.e, transformBeforeResize.f);
-}
-
-window.addEventListener('resize', () => {
-    resizeCanvas();
-    drawScene();
-});
-
-// Initialize zoom buttons
-const zoomInButton = document.getElementById('zoom-in');
-const zoomOutButton = document.getElementById('zoom-out');
-
-if (zoomInButton && zoomOutButton) {
-    zoomInButton.addEventListener('click', () => zoom(1, canvas.width / 2, canvas.height / 2));
-    zoomOutButton.addEventListener('click', () => zoom(-1, canvas.width / 2, canvas.height / 2));
-}
-
-// Mobile hover hint
-const hoverHint = document.getElementById('hover-hint');
-if ('ontouchstart' in window) {
-    hoverHint.textContent = "Tap on a dot to see the player's name";
-}
-
-// Lever functionality (if enabled)
-const params = new URLSearchParams(window.location.search);
-if (params.get('levers') === 'true') {
-    const leversButton = document.getElementById('levers');
-    const form = document.getElementById('lever-form');
-    const dialog = document.getElementById('dialog');
-    const key = document.cookie.match(/key=([^;]+)/)?.[1];
-
-    leversButton.style.display = 'block';
-    leversButton.addEventListener('click', () => {
-        dialog.showModal();
-        dialog.classList.remove('hidden');
-    });
-
-    form.addEventListener('submit', event => {
-        event.preventDefault();
-        const box = document.getElementById('box').value;
-        const lever = document.getElementById('lever').value;
-        socket.send(JSON.stringify({ box, lever, key }));
-    });
-
-    dialog.addEventListener('close', () => dialog.classList.add('hidden'));
-}
-
-// Iframe pop-out functionality
-if (window.self !== window.top) {
-    const popOutButton = document.getElementById('pop-out');
-    const hoverHint = document.getElementById('hover-hint');
-    popOutButton.classList.remove('hidden');
-    hoverHint.classList.add('hidden');
-    hoverHint.classList.remove('sm:block');
 }
 
 // Initialize
