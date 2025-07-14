@@ -33,7 +33,7 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
     for (let col = 0; col < MAP_CONFIG.cols; col++) {
         const img = new Image();
         // Adjust the path pattern based on your naming convention
-        img.src = `/images/row-${row}-column-${col}.png`; // or map-row${row}-col${col}.webp
+        img.src = `/images/row-${row + 1}-column-${col + 1}.png`; // or map-row${row}-col${col}.webp
         
         img.onload = () => {
             loadedImages++;
