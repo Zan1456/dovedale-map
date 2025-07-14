@@ -50,6 +50,7 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
     }
 }
 
+trackTransforms();
 initializeMap();
 
 // State variables
