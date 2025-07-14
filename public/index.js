@@ -34,7 +34,7 @@ const mapImages = [];
 let loadedImages = 0;
 const totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
 
-const ws = new WebSocket(`ws://${window.location.host}/ws`);
+const ws = new WebSocket(`wss://${window.location.host}/ws`);
 
 ws.addEventListener('open', () => {
     console.log('Connected to WebSocket ✅');
