@@ -13,14 +13,14 @@ let webhooks = [];
 
 async function postToWebhook(message) {
 	console.log(`Posting to webhook: ${message}`);
-  try {
-    await axios.post("https://discord.com/api/webhooks/1394424580789108908/kf0Fta-QfGa22sWn-AeFHJW9sFQQT2R4Ay2xrnYgHZBl8bgtLIh6VKckCuxvQqHQmfT7", {
-      content: message // Or whatever payload your webhook expects
-    });
-    console.log('Message sent to webhook');
-  } catch (error) {
-    console.error('Error sending message to webhook:', error.message);
-  }
+	try {
+		await axios.post("https://discord.com/api/webhooks/1394424580789108908/kf0Fta-QfGa22sWn-AeFHJW9sFQQT2R4Ay2xrnYgHZBl8bgtLIh6VKckCuxvQqHQmfT7", {
+			content: message // Or whatever payload your webhook expects
+		});
+		console.log('Message sent to webhook');
+	} catch (error) {
+		console.error('Error sending message to webhook:', error.message);
+	}
 }
 
 async function changeLever(box, lever) {
@@ -45,7 +45,6 @@ async function changeLever(box, lever) {
 	);
 	postToWebhook(`Response status code: ${response.status}`);
 }
-postToWebhook(`Using Roblox secret: ${ROBLOX_SECRET}`);
 
 
 // Endpoint to register WebSocket clients
@@ -76,31 +75,31 @@ app.get('/status', (req, res) => {
 });
 
 app.post('/positions', (req, res) => {
-    const data = req.body;
+	const data = req.body;
 
-    // Check if the key matches
-    if (!data.token || data.token !== ROBLOX_SECRET) {
-        //postToWebhook('Invalid key received in /positions');
-        return res.status(401).send('Unauthorized: Invalid key');
-    }
+	// Check if the key matches
+	if (!data.token || data.token !== ROBLOX_SECRET) {
+		//postToWebhook('Invalid key received in /positions');
+		return res.status(401).send('Unauthorized: Invalid key');
+	}
 
 	delete data.token;
 
-    // Broadcast to all WebSocket clients
-    webhooks = webhooks.filter((ws) => {
-        if (ws.readyState === ws.OPEN) {
-            try {
-                ws.send(JSON.stringify(data));
-                return true;
-            } catch (err) {
-                postToWebhook('Error sending to WebSocket client:', err);
-            }
-        }
-        return false;
-    });
+	// Broadcast to all WebSocket clients
+	webhooks = webhooks.filter((ws) => {
+		if (ws.readyState === ws.OPEN) {
+			try {
+				ws.send(JSON.stringify(data));
+				return true;
+			} catch (err) {
+				postToWebhook('Error sending to WebSocket client:', err);
+			}
+		}
+		return false;
+	});
 
-    //postToWebhook('Data from Roblox accepted and broadcasted');
-    res.status(200).send();
+	//postToWebhook('Data from Roblox accepted and broadcasted');
+	res.status(200).send();
 });
 
 app.listen(PORT, () => {
