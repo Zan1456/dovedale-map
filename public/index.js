@@ -297,8 +297,6 @@ function drawScene() {
     });
 }
 
-// Initialize
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-resizeCanvas();
 drawScene();
