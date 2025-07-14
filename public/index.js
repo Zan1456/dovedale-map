@@ -1,3 +1,15 @@
+// State variables
+let serverData = {};
+let currentServer = 'all';
+let hoveredPlayer = null;
+let lastX = canvas.width / 2;
+let lastY = canvas.height / 2;
+let dragStart = null;
+let isDragging = false;
+let currentScale = 1;
+let touchStartX, touchStartY;
+let lastTouchDistance = 0;
+
 // DOM elements
 const canvas = document.querySelector('canvas');
 const players = document.getElementById('players');
@@ -52,18 +64,6 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 
 trackTransforms();
 initializeMap();
-
-// State variables
-let serverData = {};
-let currentServer = 'all';
-let hoveredPlayer = null;
-let lastX = canvas.width / 2;
-let lastY = canvas.height / 2;
-let dragStart = null;
-let isDragging = false;
-let currentScale = 1;
-let touchStartX, touchStartY;
-let lastTouchDistance = 0;
 
 // Initialize canvas transform tracking
 trackTransforms();
