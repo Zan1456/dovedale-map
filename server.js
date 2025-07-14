@@ -58,15 +58,24 @@ app.get('/status', (req, res) => {
 	res.status(200).send('200 OK');
 });
 
-// Endpoint to receive data and redirect to webhooks
-app.post('/', (req, res) => {
+app.post('/positions', (req, res) => {
 	const data = req.body;
-	// console.log(`Sending data to websocket(s)`, data);
-	if (data[0] == "chat") return;
-	for (const webhook of webhooks) {
-		webhook.send(JSON.stringify(data));
-	}
-	res.status(200).send('Data received and forwarded to webhooks.');
+
+	webhooks.forEach((ws) => {
+		if (ws.readyState === ws.OPEN) {
+			try {
+				ws.send(JSON.stringify(data));
+			} catch (err) {
+				console.error('Error sending to WebSocket client:', err);
+			}
+		}
+	});
+
+	res.status(200).send('Data broadcasted to all WebSocket clients.');
+});
+
+ws.on('close', () => {
+	webhooks = webhooks.filter((webhook) => webhook !== ws);
 });
 
 app.listen(PORT, () => {
