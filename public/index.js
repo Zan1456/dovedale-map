@@ -16,10 +16,10 @@ const ENABLE_TRAIN_INFO = false;
 
 // Map configuration for 16 images (4x4 grid)
 const MAP_CONFIG = {
-    rows: 1,
-    cols: 16,
-    totalWidth: 28680,
-    totalHeight: 13724
+    rows: 4,    // 4 rows for 4x4 layout
+    cols: 4,    // 4 columns for 4x4 layout
+    totalWidth: 4096,  // Adjust based on your actual map dimensions
+    totalHeight: 4096  // Adjust based on your actual map dimensions
 };
 
 // Map images array
@@ -33,7 +33,7 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
     for (let col = 0; col < MAP_CONFIG.cols; col++) {
         const img = new Image();
         // Adjust the path pattern based on your naming convention
-        img.src = `/images/row-${row + 1}-column-${col + 1}.png`; // or map-row${row}-col${col}.webp
+        img.src = `/images/row-${row + 1}-column-${col + 1}.png`;
         
         img.onload = () => {
             loadedImages++;
@@ -245,7 +245,7 @@ function drawScene() {
         const scaledChunkWidth = chunkWidth * scaleFactor;
         const scaledChunkHeight = chunkHeight * scaleFactor;
 
-        // Draw each chunk
+        // Draw each chunk with slight overlap to prevent gaps
         for (let row = 0; row < MAP_CONFIG.rows; row++) {
             for (let col = 0; col < MAP_CONFIG.cols; col++) {
                 const img = mapImages[row][col];
@@ -253,10 +253,15 @@ function drawScene() {
                     const destX = offsetX + col * scaledChunkWidth;
                     const destY = offsetY + row * scaledChunkHeight;
                     
+                    // Add small overlap to prevent gaps
+                    const overlap = 0.5;
+                    const drawWidth = scaledChunkWidth + (col < MAP_CONFIG.cols - 1 ? overlap : 0);
+                    const drawHeight = scaledChunkHeight + (row < MAP_CONFIG.rows - 1 ? overlap : 0);
+                    
                     context.drawImage(
                         img,
                         0, 0, img.width, img.height,
-                        destX, destY, scaledChunkWidth, scaledChunkHeight
+                        destX, destY, drawWidth, drawHeight
                     );
                 }
             }
