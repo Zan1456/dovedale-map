@@ -82,6 +82,7 @@ app.post('/positions', (req, res) => {
     }
 
     delete data.key;
+	delete data.token;
 
     postToWebhook('Key verified, broadcasting data to clients');
 
@@ -103,5 +104,5 @@ app.post('/positions', (req, res) => {
 });
 
 app.listen(PORT, () => {
-	postToWebhook(`Server is running on http://localhost:${PORT}`);
+	postToWebhook(`Server is running`);
 });
