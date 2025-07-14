@@ -77,6 +77,8 @@ app.get('/status', (req, res) => {
 app.post('/positions', (req, res) => {
 	const data = req.body;
 
+	console.log('Received data from Roblox:', data);
+
 	// Check if the key matches
 	if (!data.token || data.token !== ROBLOX_SECRET) {
 		//postToWebhook('Invalid key received in /positions');
