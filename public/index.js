@@ -1,11 +1,9 @@
-// DOM elements
 const canvas = document.querySelector('canvas');
 const players = document.getElementById('players');
 const context = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
 const serverSelect = document.getElementById('servers');
 
-// State variables
 let serverData = {};
 let currentServer = 'all';
 let hoveredPlayer = null;
@@ -17,7 +15,6 @@ let currentScale = 1;
 let touchStartX, touchStartY;
 let lastTouchDistance = 0;
 
-// Map configuration
 const TOP_LEFT = { x: -23818, y: -10426 };
 const BOTTOM_RIGHT = { x: 20504, y: 11377 };
 const WORLD_WIDTH = BOTTOM_RIGHT.x - TOP_LEFT.x;
@@ -26,38 +23,40 @@ const WORLD_CENTRE_X = (TOP_LEFT.x + BOTTOM_RIGHT.x) / 2;
 const WORLD_CENTRE_Y = (TOP_LEFT.y + BOTTOM_RIGHT.y) / 2;
 const ENABLE_TRAIN_INFO = false;
 
-// Map configuration for 16 images (1x16 grid)
 const MAP_CONFIG = {
-    rows: 1,    // 1 row for 1x16 layout
-    cols: 16,    // 16 columns for 1x16 layout
-    totalWidth: 28680,  // Adjust based on your actual map dimensions
-    totalHeight: 13724  // Adjust based on your actual map dimensions
+    rows: 1,    
+    cols: 16,    
+    totalWidth: 28680,  
+    totalHeight: 13724  
 };
 
-// Map images array
 const mapImages = [];
 let loadedImages = 0;
 const totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
 
-// Initialize map images array
 for (let row = 0; row < MAP_CONFIG.rows; row++) {
     mapImages[row] = [];
     for (let col = 0; col < MAP_CONFIG.cols; col++) {
         const img = new Image();
-        // Adjust the path pattern based on your naming convention
+
         img.src = `/images/row-${row + 1}-column-${col + 1}.png`;
-        
+
 		img.onload = () => {
 			loadedImages++;
-			drawScene(); // draw as soon as this image is ready
+			if (loadedImages === 1) {
+				initializeMap(); 
+				drawScene();
+			} else {
+				drawScene(); 
+			}
 		};
-        
+
 		img.onerror = () => {
 			console.error(`Failed to load image: ${img.src}`);
 			loadedImages++;
-			drawScene(); // still redraw so we can show any other loaded images
+			drawScene(); 
 		};
-				
+
         mapImages[row][col] = img;
     }
 }
@@ -65,7 +64,6 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 trackTransforms();
 initializeMap();
 
-// Initialize canvas transform tracking
 trackTransforms();
 
 function getCanvasCoordinates(event) {
@@ -92,18 +90,16 @@ function zoomAt(screenX, screenY, scaleFactor) {
     drawScene();
 }
 
-// Load map images
 function initializeMap() {
-    // Ensure canvas is properly sized
+
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    
+
     const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
     context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
     drawScene();
 }
 
-// Enable dragging and zooming
 canvas.addEventListener('mousedown', (event) => {
     const mousePos = getCanvasCoordinates(event);
     dragStart = context.transformedPoint(mousePos.x, mousePos.y);
@@ -132,7 +128,6 @@ canvas.addEventListener('mouseleave', () => {
     dragStart = null;
 });
 
-// Zoom with mouse wheel
 canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
 
@@ -143,7 +138,6 @@ canvas.addEventListener('wheel', (event) => {
     zoomAt(mousePos.x, mousePos.y, scale);
 }, { passive: false });
 
-// Touch support: drag with one finger, pinch-to-zoom with two
 canvas.addEventListener('touchstart', (event) => {
     if (event.touches.length === 1) {
         const touchPos = getCanvasCoordinates(event.touches[0]);
@@ -185,7 +179,6 @@ canvas.addEventListener('touchend', () => {
     }
 });
 
-// Transform tracking system
 function trackTransforms() {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     let transform = svg.createSVGMatrix();
@@ -227,19 +220,18 @@ function trackTransforms() {
     };
 }
 
-// Server management
 function updateServerList() {
     const currentServers = Object.keys(serverData);
     const existingServers = Array.from(serverSelect.options).slice(1).map(opt => opt.value);
-    
+
     if (currentServers.length !== existingServers.length || 
         !currentServers.every(server => existingServers.includes(server))) {
-        
+
         const selectedValue = serverSelect.value;
         const totalPlayers = Object.values(serverData).reduce((count, players) => count + players.length, 0);
-        
+
         let html = `<option value="all">All Servers (${totalPlayers})</option>`;
-        
+
         currentServers.forEach(jobId => {
             const serverName = jobId.length > 6 ? `Server ${jobId.substring(jobId.length - 6)}` : `Server ${jobId}`;
             const playerCount = serverData[jobId].length;
@@ -262,7 +254,6 @@ function getAllPlayers() {
     return currentServer === 'all' ? Object.values(serverData).flat() : (serverData[currentServer] || []);
 }
 
-// Coordinate conversion
 function worldToCanvas(worldX, worldY) {
     const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
     const relativeY = (worldY - TOP_LEFT.y) / WORLD_HEIGHT;
@@ -271,10 +262,10 @@ function worldToCanvas(worldX, worldY) {
     const mapHeight = MAP_CONFIG.totalHeight;
     const mapAspectRatio = mapWidth / mapHeight;
     const canvasAspectRatio = canvas.width / canvas.height;
-    
+
     const scaleFactor = mapAspectRatio > canvasAspectRatio ? 
         canvas.width / mapWidth : canvas.height / mapHeight;
-    
+
     const scaledMapWidth = mapWidth * scaleFactor;
     const scaledMapHeight = mapHeight * scaleFactor;
     const offsetX = (canvas.width - scaledMapWidth) / 2;
@@ -286,12 +277,11 @@ function worldToCanvas(worldX, worldY) {
     };
 }
 
-// Player color calculation
 function getPlayerColour(name) {
     if (!name) return '#00FFFF';
 
     const NAME_COLORS = ['#FD2943', '#01A2FF', '#02B857', '#A75EB8', '#F58225', '#F5CD30', '#E8BAC8', '#D7C59A'];
-    
+
     let value = 0;
     for (let i = 0; i < name.length; i++) {
         const charValue = name.charCodeAt(i);
@@ -299,12 +289,11 @@ function getPlayerColour(name) {
         if (name.length % 2 === 1) reverseIndex--;
         value += reverseIndex % 4 >= 2 ? -charValue : charValue;
     }
-    
+
     const colorIndex = ((value % NAME_COLORS.length) + NAME_COLORS.length) % NAME_COLORS.length;
     return NAME_COLORS[colorIndex];
 }
 
-// Drawing functions
 function drawGrid() {
     context.strokeStyle = '#333333';
     context.lineWidth = 1;
@@ -339,34 +328,31 @@ function drawScene() {
         const mapHeight = MAP_CONFIG.totalHeight;
         const mapAspectRatio = mapWidth / mapHeight;
         const canvasAspectRatio = canvas.width / canvas.height;
-        
+
         const scaleFactor = mapAspectRatio > canvasAspectRatio ? 
             canvas.width / mapWidth : canvas.height / mapHeight;
-        
+
         const scaledMapWidth = mapWidth * scaleFactor;
         const scaledMapHeight = mapHeight * scaleFactor;
         const offsetX = (canvas.width - scaledMapWidth) / 2;
         const offsetY = (canvas.height - scaledMapHeight) / 2;
 
-        // Calculate chunk dimensions
         const chunkWidth = mapWidth / MAP_CONFIG.cols;
         const chunkHeight = mapHeight / MAP_CONFIG.rows;
         const scaledChunkWidth = chunkWidth * scaleFactor;
         const scaledChunkHeight = chunkHeight * scaleFactor;
 
-        // Draw each chunk with slight overlap to prevent gaps
         for (let row = 0; row < MAP_CONFIG.rows; row++) {
             for (let col = 0; col < MAP_CONFIG.cols; col++) {
                 const img = mapImages[row][col];
                 if (img && img.complete) {
                     const destX = offsetX + col * scaledChunkWidth;
                     const destY = offsetY + row * scaledChunkHeight;
-                    
-                    // Add small overlap to prevent gaps
+
                     const overlap = 0.5;
                     const drawWidth = scaledChunkWidth + (col < MAP_CONFIG.cols - 1 ? overlap : 0);
                     const drawHeight = scaledChunkHeight + (row < MAP_CONFIG.rows - 1 ? overlap : 0);
-                    
+
                     context.drawImage(
                         img,
                         0, 0, img.width, img.height,
