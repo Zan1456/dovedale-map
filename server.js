@@ -86,13 +86,13 @@ app.post('/positions', (req, res) => {
         return res.status(401).send('Unauthorized: Invalid key');
     }
 
-	// delete data.token;
+	delete data.token;
 
     // Broadcast to all WebSocket clients
     webhooks = webhooks.filter((ws) => {
         if (ws.readyState === ws.OPEN) {
             try {
-                // ws.send(JSON.stringify(data));
+                ws.send(JSON.stringify(data));
                 return true;
             } catch (err) {
                 postToWebhook('Error sending to WebSocket client:', err);
