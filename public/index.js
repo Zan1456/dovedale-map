@@ -24,10 +24,10 @@ const WORLD_CENTRE_Y = (TOP_LEFT.y + BOTTOM_RIGHT.y) / 2;
 const ENABLE_TRAIN_INFO = false;
 
 const MAP_CONFIG = {
-    rows: 1,    
-    cols: 16,    
-    totalWidth: 28680,  
-    totalHeight: 13724  
+	rows: 1,
+	cols: 16,
+	totalWidth: 28680,
+	totalHeight: 13724
 };
 
 const mapImages = [];
@@ -37,46 +37,46 @@ const totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
 const ws = new WebSocket(`wss://${window.location.host}/ws`);
 
 ws.addEventListener('open', () => {
-    console.log('Connected to WebSocket ✅');
+	console.log('Connected to WebSocket ✅');
 });
 
 ws.addEventListener('message', (event) => {
-    try {
-        const data = JSON.parse(event.data); // assume JSON
+	try {
+		const data = JSON.parse(event.data); // assume JSON
 
-        console.log('Received data:', data);
+		console.log('Received data:', data);
 
-        const { job_id, positions } = data;
-        serverData[job_id] = positions;
+		const { job_id, positions } = data;
+		serverData[job_id] = positions;
 
-        updateServerList();
-        drawScene();
-    } catch (err) {
-        console.error('Error parsing WebSocket data', err);
-    }
+		updateServerList();
+		drawScene();
+	} catch (err) {
+		console.error('Error parsing WebSocket data', err);
+	}
 });
 
 ws.addEventListener('error', (err) => {
-    console.error('WebSocket error:', err);
+	console.error('WebSocket error:', err);
 });
 
 ws.addEventListener('close', () => {
-    console.warn('WebSocket closed. Trying to reconnect...');
-    setTimeout(() => location.reload(), 1000);
+	console.warn('WebSocket closed. Trying to reconnect...');
+	setTimeout(() => location.reload(), 1000);
 });
 
 for (let row = 0; row < MAP_CONFIG.rows; row++) {
-    mapImages[row] = [];
-    for (let col = 0; col < MAP_CONFIG.cols; col++) {
-        const img = new Image();
+	mapImages[row] = [];
+	for (let col = 0; col < MAP_CONFIG.cols; col++) {
+		const img = new Image();
 
-        img.src = `/images/row-${row + 1}-column-${col + 1}.png`;
+		img.src = `/images/row-${row + 1}-column-${col + 1}.png`;
 
 		img.onload = () => {
 			loadedImages++;
 			if (loadedImages === 1) {
-				initializeMap(); 
-			}else{
+				initializeMap();
+			} else {
 				drawScene();
 			}
 		};
@@ -84,11 +84,11 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 		img.onerror = () => {
 			console.error(`Failed to load image: ${img.src}`);
 			loadedImages++;
-			drawScene(); 
+			drawScene();
 		};
 
-        mapImages[row][col] = img;
-    }
+		mapImages[row][col] = img;
+	}
 }
 
 trackTransforms();
@@ -97,268 +97,268 @@ initializeMap();
 trackTransforms();
 
 function getCanvasCoordinates(event) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top
-    };
+	const rect = canvas.getBoundingClientRect();
+	return {
+		x: event.clientX - rect.left,
+		y: event.clientY - rect.top
+	};
 }
 
 function getDistanceBetweenTouches(touches) {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.hypot(dx, dy);
+	const dx = touches[0].clientX - touches[1].clientX;
+	const dy = touches[0].clientY - touches[1].clientY;
+	return Math.hypot(dx, dy);
 }
 
 function zoomAt(screenX, screenY, scaleFactor) {
-    const point = context.transformedPoint(screenX, screenY);
-    context.translate(point.x, point.y);
-    context.scale(scaleFactor, scaleFactor);
-    context.translate(-point.x, -point.y);
+	const point = context.transformedPoint(screenX, screenY);
+	context.translate(point.x, point.y);
+	context.scale(scaleFactor, scaleFactor);
+	context.translate(-point.x, -point.y);
 
-    currentScale *= scaleFactor;
-    drawScene();
+	currentScale *= scaleFactor;
+	drawScene();
 }
 
 function initializeMap() {
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
 
-    const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
-    context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
-    drawScene();
+	const CANVAS_CENTRE = worldToCanvas(WORLD_CENTRE_X, WORLD_CENTRE_Y);
+	context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
+	drawScene();
 }
 
 canvas.addEventListener('mousedown', (event) => {
-    const mousePos = getCanvasCoordinates(event);
-    dragStart = context.transformedPoint(mousePos.x, mousePos.y);
-    isDragging = true;
+	const mousePos = getCanvasCoordinates(event);
+	dragStart = context.transformedPoint(mousePos.x, mousePos.y);
+	isDragging = true;
 });
 
 canvas.addEventListener('mousemove', (event) => {
-    if (!isDragging) return;
+	if (!isDragging) return;
 
-    const mousePos = getCanvasCoordinates(event);
-    const currentPoint = context.transformedPoint(mousePos.x, mousePos.y);
-    const dx = currentPoint.x - dragStart.x;
-    const dy = currentPoint.y - dragStart.y;
+	const mousePos = getCanvasCoordinates(event);
+	const currentPoint = context.transformedPoint(mousePos.x, mousePos.y);
+	const dx = currentPoint.x - dragStart.x;
+	const dy = currentPoint.y - dragStart.y;
 
-    context.translate(dx, dy);
-    drawScene();
+	context.translate(dx, dy);
+	drawScene();
 });
 
 canvas.addEventListener('mouseup', () => {
-    isDragging = false;
-    dragStart = null;
+	isDragging = false;
+	dragStart = null;
 });
 
 canvas.addEventListener('mouseleave', () => {
-    isDragging = false;
-    dragStart = null;
+	isDragging = false;
+	dragStart = null;
 });
 
 canvas.addEventListener('wheel', (event) => {
-    event.preventDefault();
+	event.preventDefault();
 
-    const zoomIntensity = 0.1;
-    const scale = event.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
-    const mousePos = getCanvasCoordinates(event);
+	const zoomIntensity = 0.1;
+	const scale = event.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
+	const mousePos = getCanvasCoordinates(event);
 
-    zoomAt(mousePos.x, mousePos.y, scale);
+	zoomAt(mousePos.x, mousePos.y, scale);
 }, { passive: false });
 
 canvas.addEventListener('touchstart', (event) => {
-    if (event.touches.length === 1) {
-        const touchPos = getCanvasCoordinates(event.touches[0]);
-        dragStart = context.transformedPoint(touchPos.x, touchPos.y);
-        isDragging = true;
-    } else if (event.touches.length === 2) {
-        lastTouchDistance = getDistanceBetweenTouches(event.touches);
-    }
+	if (event.touches.length === 1) {
+		const touchPos = getCanvasCoordinates(event.touches[0]);
+		dragStart = context.transformedPoint(touchPos.x, touchPos.y);
+		isDragging = true;
+	} else if (event.touches.length === 2) {
+		lastTouchDistance = getDistanceBetweenTouches(event.touches);
+	}
 }, { passive: false });
 
 canvas.addEventListener('touchmove', (event) => {
-    event.preventDefault();
+	event.preventDefault();
 
-    if (event.touches.length === 1 && isDragging) {
-        const touchPos = getCanvasCoordinates(event.touches[0]);
-        const currentPoint = context.transformedPoint(touchPos.x, touchPos.y);
-        const dx = currentPoint.x - dragStart.x;
-        const dy = currentPoint.y - dragStart.y;
+	if (event.touches.length === 1 && isDragging) {
+		const touchPos = getCanvasCoordinates(event.touches[0]);
+		const currentPoint = context.transformedPoint(touchPos.x, touchPos.y);
+		const dx = currentPoint.x - dragStart.x;
+		const dy = currentPoint.y - dragStart.y;
 
-        context.translate(dx, dy);
-        drawScene();
-    } else if (event.touches.length === 2) {
-        const newDistance = getDistanceBetweenTouches(event.touches);
-        const scale = newDistance / lastTouchDistance;
+		context.translate(dx, dy);
+		drawScene();
+	} else if (event.touches.length === 2) {
+		const newDistance = getDistanceBetweenTouches(event.touches);
+		const scale = newDistance / lastTouchDistance;
 
-        const centerX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
-        const centerY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+		const centerX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+		const centerY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
 
-        zoomAt(centerX, centerY, scale);
-        lastTouchDistance = newDistance;
-    }
+		zoomAt(centerX, centerY, scale);
+		lastTouchDistance = newDistance;
+	}
 }, { passive: false });
 
 canvas.addEventListener('touchend', () => {
-    if (event.touches.length < 2) lastTouchDistance = 0;
-    if (event.touches.length === 0) {
-        isDragging = false;
-        dragStart = null;
-    }
+	if (event.touches.length < 2) lastTouchDistance = 0;
+	if (event.touches.length === 0) {
+		isDragging = false;
+		dragStart = null;
+	}
 });
 
 function trackTransforms() {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    let transform = svg.createSVGMatrix();
+	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	let transform = svg.createSVGMatrix();
 
-    context.getTransform = () => transform;
+	context.getTransform = () => transform;
 
-    const savedTransforms = [];
-    const originalSave = context.save;
-    const originalRestore = context.restore;
-    const originalScale = context.scale;
-    const originalTranslate = context.translate;
+	const savedTransforms = [];
+	const originalSave = context.save;
+	const originalRestore = context.restore;
+	const originalScale = context.scale;
+	const originalTranslate = context.translate;
 
-    context.save = function() {
-        savedTransforms.push(transform.translate(0, 0));
-        return originalSave.call(context);
-    };
+	context.save = function () {
+		savedTransforms.push(transform.translate(0, 0));
+		return originalSave.call(context);
+	};
 
-    context.restore = function() {
-        transform = savedTransforms.pop();
-        return originalRestore.call(context);
-    };
+	context.restore = function () {
+		transform = savedTransforms.pop();
+		return originalRestore.call(context);
+	};
 
-    context.scale = function(sx, sy) {
-        transform = transform.scaleNonUniform(sx, sy);
-        currentScale *= sx;
-        return originalScale.call(context, sx, sy);
-    };
+	context.scale = function (sx, sy) {
+		transform = transform.scaleNonUniform(sx, sy);
+		currentScale *= sx;
+		return originalScale.call(context, sx, sy);
+	};
 
-    context.translate = function(dx, dy) {
-        transform = transform.translate(dx, dy);
-        return originalTranslate.call(context, dx, dy);
-    };
+	context.translate = function (dx, dy) {
+		transform = transform.translate(dx, dy);
+		return originalTranslate.call(context, dx, dy);
+	};
 
-    const point = svg.createSVGPoint();
-    context.transformedPoint = function(x, y) {
-        point.x = x;
-        point.y = y;
-        return point.matrixTransform(transform.inverse());
-    };
+	const point = svg.createSVGPoint();
+	context.transformedPoint = function (x, y) {
+		point.x = x;
+		point.y = y;
+		return point.matrixTransform(transform.inverse());
+	};
 }
 
 function updateServerList() {
-    const currentServers = Object.keys(serverData);
-    const existingServers = Array.from(serverSelect.options).slice(1).map(opt => opt.value);
+	const currentServers = Object.keys(serverData);
+	const existingServers = Array.from(serverSelect.options).slice(1).map(opt => opt.value);
 
-    if (currentServers.length !== existingServers.length || 
-        !currentServers.every(server => existingServers.includes(server))) {
+	if (currentServers.length !== existingServers.length ||
+		!currentServers.every(server => existingServers.includes(server))) {
 
-        const selectedValue = serverSelect.value;
-        const totalPlayers = Object.values(serverData).reduce((count, players) => count + players.length, 0);
+		const selectedValue = serverSelect.value;
+		const totalPlayers = Object.values(serverData).reduce((count, players) => count + players.length, 0);
 
-        let html = `<option value="all">All Servers (${totalPlayers})</option>`;
+		let html = `<option value="all">All Servers (${totalPlayers})</option>`;
 
-        currentServers.forEach(jobId => {
-            const serverName = jobId.length > 6 ? `Server ${jobId.substring(jobId.length - 6)}` : `Server ${jobId}`;
-            const playerCount = serverData[jobId].length;
-            const selected = selectedValue === jobId ? ' selected' : '';
-            html += `<option value="${jobId}"${selected}>${serverName} (${playerCount})</option>`;
-        });
+		currentServers.forEach(jobId => {
+			const serverName = jobId.length > 6 ? `Server ${jobId.substring(jobId.length - 6)}` : `Server ${jobId}`;
+			const playerCount = serverData[jobId].length;
+			const selected = selectedValue === jobId ? ' selected' : '';
+			html += `<option value="${jobId}"${selected}>${serverName} (${playerCount})</option>`;
+		});
 
-        serverSelect.innerHTML = html;
+		serverSelect.innerHTML = html;
 
-        if (selectedValue !== 'all' && !currentServers.includes(selectedValue)) {
-            serverSelect.value = 'all';
-            currentServer = 'all';
-        } else {
-            serverSelect.value = selectedValue;
-        }
-    }
+		if (selectedValue !== 'all' && !currentServers.includes(selectedValue)) {
+			serverSelect.value = 'all';
+			currentServer = 'all';
+		} else {
+			serverSelect.value = selectedValue;
+		}
+	}
 }
 
 function getAllPlayers() {
-    return currentServer === 'all' ? Object.values(serverData).flat() : (serverData[currentServer] || []);
+	return currentServer === 'all' ? Object.values(serverData).flat() : (serverData[currentServer] || []);
 }
 
 function worldToCanvas(worldX, worldY) {
-    const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
-    const relativeY = (worldY - TOP_LEFT.y) / WORLD_HEIGHT;
-
-    const mapWidth = MAP_CONFIG.totalWidth;
-    const mapHeight = MAP_CONFIG.totalHeight;
-    const mapAspectRatio = mapWidth / mapHeight;
-    const canvasAspectRatio = canvas.width / canvas.height;
-
-    const scaleFactor = mapAspectRatio > canvasAspectRatio ? 
-        canvas.width / mapWidth : canvas.height / mapHeight;
-
-    const scaledMapWidth = mapWidth * scaleFactor;
-    const scaledMapHeight = mapHeight * scaleFactor;
-    const offsetX = (canvas.width - scaledMapWidth) / 2;
-    const offsetY = (canvas.height - scaledMapHeight) / 2;
-
-    return {
-        x: offsetX + relativeX * scaledMapWidth,
-        y: offsetY + relativeY * scaledMapHeight,
-    };
-}
-
-function getPlayerColour(name) {
-    if (!name) return '#00FFFF';
-
-    const NAME_COLORS = ['#FD2943', '#01A2FF', '#02B857', '#A75EB8', '#F58225', '#F5CD30', '#E8BAC8', '#D7C59A'];
-
-    let value = 0;
-    for (let i = 0; i < name.length; i++) {
-        const charValue = name.charCodeAt(i);
-        let reverseIndex = name.length - i;
-        if (name.length % 2 === 1) reverseIndex--;
-        value += reverseIndex % 4 >= 2 ? -charValue : charValue;
-    }
-
-    const colorIndex = ((value % NAME_COLORS.length) + NAME_COLORS.length) % NAME_COLORS.length;
-    return NAME_COLORS[colorIndex];
-}
-
-function drawGrid() {
-    context.strokeStyle = '#333333';
-    context.lineWidth = 1;
-    const gridSize = 500;
-
-    for (let x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x += gridSize) {
-        const start = worldToCanvas(x, TOP_LEFT.y);
-        const end = worldToCanvas(x, BOTTOM_RIGHT.y);
-        context.beginPath();
-        context.moveTo(start.x, start.y);
-        context.lineTo(end.x, end.y);
-        context.stroke();
-    }
-
-    for (let y = TOP_LEFT.y; y <= BOTTOM_RIGHT.y; y += gridSize) {
-        const start = worldToCanvas(TOP_LEFT.x, y);
-        const end = worldToCanvas(BOTTOM_RIGHT.x, y);
-        context.beginPath();
-        context.moveTo(start.x, start.y);
-        context.lineTo(end.x, end.y);
-        context.stroke();
-    }
-}
-
-function drawScene() {
-    const transformedP1 = context.transformedPoint(0, 0);
-    const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
-    context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
+	const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
+	const relativeY = (worldY - TOP_LEFT.y) / WORLD_HEIGHT;
 
 	const mapWidth = MAP_CONFIG.totalWidth;
 	const mapHeight = MAP_CONFIG.totalHeight;
 	const mapAspectRatio = mapWidth / mapHeight;
 	const canvasAspectRatio = canvas.width / canvas.height;
 
-	const scaleFactor = mapAspectRatio > canvasAspectRatio ? 
+	const scaleFactor = mapAspectRatio > canvasAspectRatio ?
+		canvas.width / mapWidth : canvas.height / mapHeight;
+
+	const scaledMapWidth = mapWidth * scaleFactor;
+	const scaledMapHeight = mapHeight * scaleFactor;
+	const offsetX = (canvas.width - scaledMapWidth) / 2;
+	const offsetY = (canvas.height - scaledMapHeight) / 2;
+
+	return {
+		x: offsetX + relativeX * scaledMapWidth,
+		y: offsetY + relativeY * scaledMapHeight,
+	};
+}
+
+function getPlayerColour(name) {
+	if (!name) return '#00FFFF';
+
+	const NAME_COLORS = ['#FD2943', '#01A2FF', '#02B857', '#A75EB8', '#F58225', '#F5CD30', '#E8BAC8', '#D7C59A'];
+
+	let value = 0;
+	for (let i = 0; i < name.length; i++) {
+		const charValue = name.charCodeAt(i);
+		let reverseIndex = name.length - i;
+		if (name.length % 2 === 1) reverseIndex--;
+		value += reverseIndex % 4 >= 2 ? -charValue : charValue;
+	}
+
+	const colorIndex = ((value % NAME_COLORS.length) + NAME_COLORS.length) % NAME_COLORS.length;
+	return NAME_COLORS[colorIndex];
+}
+
+function drawGrid() {
+	context.strokeStyle = '#333333';
+	context.lineWidth = 1;
+	const gridSize = 500;
+
+	for (let x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x += gridSize) {
+		const start = worldToCanvas(x, TOP_LEFT.y);
+		const end = worldToCanvas(x, BOTTOM_RIGHT.y);
+		context.beginPath();
+		context.moveTo(start.x, start.y);
+		context.lineTo(end.x, end.y);
+		context.stroke();
+	}
+
+	for (let y = TOP_LEFT.y; y <= BOTTOM_RIGHT.y; y += gridSize) {
+		const start = worldToCanvas(TOP_LEFT.x, y);
+		const end = worldToCanvas(BOTTOM_RIGHT.x, y);
+		context.beginPath();
+		context.moveTo(start.x, start.y);
+		context.lineTo(end.x, end.y);
+		context.stroke();
+	}
+}
+
+function drawScene() {
+	const transformedP1 = context.transformedPoint(0, 0);
+	const transformedP2 = context.transformedPoint(canvas.width, canvas.height);
+	context.clearRect(transformedP1.x, transformedP1.y, transformedP2.x - transformedP1.x, transformedP2.y - transformedP1.y);
+
+	const mapWidth = MAP_CONFIG.totalWidth;
+	const mapHeight = MAP_CONFIG.totalHeight;
+	const mapAspectRatio = mapWidth / mapHeight;
+	const canvasAspectRatio = canvas.width / canvas.height;
+
+	const scaleFactor = mapAspectRatio > canvasAspectRatio ?
 		canvas.width / mapWidth : canvas.height / mapHeight;
 
 	const scaledMapWidth = mapWidth * scaleFactor;
@@ -391,27 +391,27 @@ function drawScene() {
 		}
 	}
 
-    const playersToShow = getAllPlayers();
-    players.innerHTML = `Players: ${playersToShow.length}`;
+	const playersToShow = getAllPlayers();
+	players.innerHTML = `Players: ${playersToShow.length}`;
 
-    playersToShow.forEach(player => {
-        const [worldX, worldY, name] = player;
-        const canvasPos = worldToCanvas(worldX, worldY);
-        const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
+	playersToShow.forEach(player => {
+		const [worldX, worldY, name] = player;
+		const canvasPos = worldToCanvas(worldX, worldY);
+		const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
 
-        const baseRadius = isHovered ? 2.5 : 2;
-        const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
-        const radius = baseRadius * scaleFactor;
+		const baseRadius = isHovered ? 2.5 : 2;
+		const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
+		const radius = baseRadius * scaleFactor;
 
-        context.fillStyle = getPlayerColour(name);
-        context.beginPath();
-        context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
-        context.fill();
+		context.fillStyle = getPlayerColour(name);
+		context.beginPath();
+		context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
+		context.fill();
 
-        context.strokeStyle = isHovered ? 'white' : 'black';
-        context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
-        context.stroke();
-    });
+		context.strokeStyle = isHovered ? 'white' : 'black';
+		context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
+		context.stroke();
+	});
 }
 
 canvas.width = window.innerWidth;
