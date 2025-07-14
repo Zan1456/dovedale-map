@@ -78,11 +78,9 @@ app.get('/status', (req, res) => {
 app.post('/positions', (req, res) => {
     const data = req.body;
 
-    postToWebhook(JSON.stringify(data));
-
     // Check if the key matches
     if (!data.token || data.token !== ROBLOX_SECRET) {
-        postToWebhook('Invalid key received in /positions');
+        //postToWebhook('Invalid key received in /positions');
         return res.status(401).send('Unauthorized: Invalid key');
     }
 
@@ -101,7 +99,7 @@ app.post('/positions', (req, res) => {
         return false;
     });
 
-    postToWebhook('Data from Roblox accepted and broadcasted');
+    //postToWebhook('Data from Roblox accepted and broadcasted');
     res.status(200).send();
 });
 
