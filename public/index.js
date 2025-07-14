@@ -45,10 +45,8 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 			loadedImages++;
 			if (loadedImages === 1) {
 				initializeMap(); 
-				drawScene();
-			} else {
-				drawScene(); 
 			}
+			drawScene();
 		};
 
 		img.onerror = () => {
