@@ -69,6 +69,30 @@ let lastTouchDistance = 0;
 // Initialize canvas transform tracking
 trackTransforms();
 
+function getCanvasCoordinates(event) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+    };
+}
+
+function getDistanceBetweenTouches(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+}
+
+function zoomAt(screenX, screenY, scaleFactor) {
+    const point = context.transformedPoint(screenX, screenY);
+    context.translate(point.x, point.y);
+    context.scale(scaleFactor, scaleFactor);
+    context.translate(-point.x, -point.y);
+
+    currentScale *= scaleFactor;
+    drawScene();
+}
+
 // Load map images
 function initializeMap() {
     // Ensure canvas is properly sized
@@ -79,6 +103,88 @@ function initializeMap() {
     context.translate(window.innerWidth / 2 - CANVAS_CENTRE.x, window.innerHeight / 2 - CANVAS_CENTRE.y);
     drawScene();
 }
+
+// Enable dragging and zooming
+canvas.addEventListener('mousedown', (event) => {
+    const mousePos = getCanvasCoordinates(event);
+    dragStart = context.transformedPoint(mousePos.x, mousePos.y);
+    isDragging = true;
+});
+
+canvas.addEventListener('mousemove', (event) => {
+    if (!isDragging) return;
+
+    const mousePos = getCanvasCoordinates(event);
+    const currentPoint = context.transformedPoint(mousePos.x, mousePos.y);
+    const dx = currentPoint.x - dragStart.x;
+    const dy = currentPoint.y - dragStart.y;
+
+    context.translate(dx, dy);
+    drawScene();
+});
+
+canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+    dragStart = null;
+});
+
+canvas.addEventListener('mouseleave', () => {
+    isDragging = false;
+    dragStart = null;
+});
+
+// Zoom with mouse wheel
+canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+
+    const zoomIntensity = 0.1;
+    const scale = event.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
+    const mousePos = getCanvasCoordinates(event);
+
+    zoomAt(mousePos.x, mousePos.y, scale);
+}, { passive: false });
+
+// Touch support: drag with one finger, pinch-to-zoom with two
+canvas.addEventListener('touchstart', (event) => {
+    if (event.touches.length === 1) {
+        const touchPos = getCanvasCoordinates(event.touches[0]);
+        dragStart = context.transformedPoint(touchPos.x, touchPos.y);
+        isDragging = true;
+    } else if (event.touches.length === 2) {
+        lastTouchDistance = getDistanceBetweenTouches(event.touches);
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (event) => {
+    event.preventDefault();
+
+    if (event.touches.length === 1 && isDragging) {
+        const touchPos = getCanvasCoordinates(event.touches[0]);
+        const currentPoint = context.transformedPoint(touchPos.x, touchPos.y);
+        const dx = currentPoint.x - dragStart.x;
+        const dy = currentPoint.y - dragStart.y;
+
+        context.translate(dx, dy);
+        drawScene();
+    } else if (event.touches.length === 2) {
+        const newDistance = getDistanceBetweenTouches(event.touches);
+        const scale = newDistance / lastTouchDistance;
+
+        const centerX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+        const centerY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+
+        zoomAt(centerX, centerY, scale);
+        lastTouchDistance = newDistance;
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+    if (event.touches.length < 2) lastTouchDistance = 0;
+    if (event.touches.length === 0) {
+        isDragging = false;
+        dragStart = null;
+    }
+});
 
 // Transform tracking system
 function trackTransforms() {
