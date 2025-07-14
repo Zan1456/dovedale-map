@@ -35,24 +35,22 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
         // Adjust the path pattern based on your naming convention
         img.src = `/images/row-${row + 1}-column-${col + 1}.png`;
         
-        img.onload = () => {
-            loadedImages++;
-            if (loadedImages === totalImages) {
-                initializeMap();
-            }
-        };
+		img.onload = () => {
+			loadedImages++;
+			drawScene(); // draw as soon as this image is ready
+		};
         
-        img.onerror = () => {
-            console.error(`Failed to load image: ${img.src}`);
-            loadedImages++;
-            if (loadedImages === totalImages) {
-                initializeMap();
-            }
-        };
-        
+		img.onerror = () => {
+			console.error(`Failed to load image: ${img.src}`);
+			loadedImages++;
+			drawScene(); // still redraw so we can show any other loaded images
+		};
+				
         mapImages[row][col] = img;
     }
 }
+
+initializeMap();
 
 // State variables
 let serverData = {};
