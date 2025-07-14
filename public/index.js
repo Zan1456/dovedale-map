@@ -34,6 +34,37 @@ const mapImages = [];
 let loadedImages = 0;
 const totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
 
+const ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+ws.addEventListener('open', () => {
+    console.log('Connected to WebSocket ✅');
+});
+
+ws.addEventListener('message', (event) => {
+    try {
+        const data = JSON.parse(event.data); // assume JSON
+
+        console.log('Received data:', data);
+
+        const { job_id, positions } = data;
+        serverData[job_id] = positions;
+
+        updateServerList();
+        drawScene();
+    } catch (err) {
+        console.error('Error parsing WebSocket data', err);
+    }
+});
+
+ws.addEventListener('error', (err) => {
+    console.error('WebSocket error:', err);
+});
+
+ws.addEventListener('close', () => {
+    console.warn('WebSocket closed. Trying to reconnect...');
+    setTimeout(() => location.reload(), 1000);
+});
+
 for (let row = 0; row < MAP_CONFIG.rows; row++) {
     mapImages[row] = [];
     for (let col = 0; col < MAP_CONFIG.cols; col++) {
