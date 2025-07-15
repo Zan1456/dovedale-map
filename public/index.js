@@ -315,10 +315,7 @@ function updateServerList(data) {
 
 
 function getAllPlayers() {
-	if (currentServer === 'all') {
-		return Object.values(serverData).flat().filter(p => p && typeof p === 'object');
-	}
-	return Array.isArray(serverData[currentServer]) ? serverData[currentServer] : [];
+	return currentServer === 'all' ? Object.values(serverData).flat() : (serverData[currentServer] || []);
 }
 
 
