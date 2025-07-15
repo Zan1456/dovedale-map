@@ -253,11 +253,11 @@ function trackTransforms() {
 }
 
 function totalPlayers(players) {
-    if (!Array.isArray(players)) {
-        console.warn("totalPlayers: players is not an array", players);
-        return 0;
-    }
-    return players.length;
+	if (!Array.isArray(players)) {
+		console.warn("totalPlayers: players is not an array", players);
+		return 0;
+	}
+	return players.length;
 }
 
 function updateServerList(data) {
@@ -432,29 +432,30 @@ function drawScene() {
 	const playersToShow = getAllPlayers();
 	players.innerHTML = `Players: ${playersToShow.length}`;
 	console.log('Players to draw:', playersToShow);
-	
+
 	playersToShow.forEach(player => {
-	// Adjust this to new player object structure
-	const worldX = player.x ?? 0;
-	const worldY = player.y ?? 0;
-	const name = player.name ?? "Unknown";
+		// player is like { username: "...", position: { x: ..., y: ... } }
+		const worldX = player.position?.x ?? 0;
+		const worldY = player.position?.y ?? 0;
+		const name = player.username ?? "Unknown";
 
-	const canvasPos = worldToCanvas(worldX, worldY);
-	const isHovered = hoveredPlayer && hoveredPlayer.name === name;
+		const canvasPos = worldToCanvas(worldX, worldY);
+		const isHovered = hoveredPlayer && hoveredPlayer?.username === name;
 
-	const baseRadius = isHovered ? 2.5 : 2;
-	const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
-	const radius = baseRadius * scaleFactor;
+		const baseRadius = isHovered ? 2.5 : 2;
+		const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
+		const radius = baseRadius * scaleFactor;
 
-	context.fillStyle = getPlayerColour(name);
-	context.beginPath();
-	context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
-	context.fill();
+		context.fillStyle = getPlayerColour(name);
+		context.beginPath();
+		context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
+		context.fill();
 
-	context.strokeStyle = isHovered ? 'white' : 'black';
-	context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
-	context.stroke();
-});
+		context.strokeStyle = isHovered ? 'white' : 'black';
+		context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
+		context.stroke();
+	});
+
 }
 
 canvas.width = window.innerWidth;
