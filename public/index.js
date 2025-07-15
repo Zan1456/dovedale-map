@@ -431,25 +431,30 @@ function drawScene() {
 
 	const playersToShow = getAllPlayers();
 	players.innerHTML = `Players: ${playersToShow.length}`;
-
+	console.log('Players to draw:', playersToShow);
+	
 	playersToShow.forEach(player => {
-		const [worldX, worldY, name] = player;
-		const canvasPos = worldToCanvas(worldX, worldY);
-		const isHovered = hoveredPlayer && hoveredPlayer[2] === name;
+	// Adjust this to new player object structure
+	const worldX = player.x ?? 0;
+	const worldY = player.y ?? 0;
+	const name = player.name ?? "Unknown";
 
-		const baseRadius = isHovered ? 2.5 : 2;
-		const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
-		const radius = baseRadius * scaleFactor;
+	const canvasPos = worldToCanvas(worldX, worldY);
+	const isHovered = hoveredPlayer && hoveredPlayer.name === name;
 
-		context.fillStyle = getPlayerColour(name);
-		context.beginPath();
-		context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
-		context.fill();
+	const baseRadius = isHovered ? 2.5 : 2;
+	const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
+	const radius = baseRadius * scaleFactor;
 
-		context.strokeStyle = isHovered ? 'white' : 'black';
-		context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
-		context.stroke();
-	});
+	context.fillStyle = getPlayerColour(name);
+	context.beginPath();
+	context.arc(canvasPos.x, canvasPos.y, radius, 0, Math.PI * 2);
+	context.fill();
+
+	context.strokeStyle = isHovered ? 'white' : 'black';
+	context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
+	context.stroke();
+});
 }
 
 canvas.width = window.innerWidth;
