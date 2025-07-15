@@ -42,14 +42,16 @@ ws.addEventListener('open', () => {
 
 ws.addEventListener('message', (event) => {
 	try {
-		const data = JSON.parse(event.data); // assume JSON
+		const data = JSON.parse(event.data);
 
 		console.log('Received data:', data);
 
-		const { job_id, positions } = data;
+		const job_id = data.job_id;
+		const positions = Array.isArray(data.positions) ? data.positions : [];
+
 		serverData[job_id] = positions;
 
-		updateServerList();
+		updateServerList(data);  // pass data so updateServerList can access players safely
 		drawScene();
 	} catch (err) {
 		console.error('Error parsing WebSocket data', err);
@@ -250,21 +252,52 @@ function trackTransforms() {
 	};
 }
 
-function updateServerList() {
+function totalPlayers(players) {
+    if (!Array.isArray(players)) {
+        console.warn("totalPlayers: players is not an array", players);
+        return 0;
+    }
+    return players.length;
+}
+
+function updateServerList(data) {
 	const currentServers = Object.keys(serverData);
 	const existingServers = Array.from(serverSelect.options).slice(1).map(opt => opt.value);
+
+	// Safely get players array from data.positions
+	const players = data && Array.isArray(data.positions) ? data.positions : [];
+
+	// Normalize trainData if needed
+	players.forEach(player => {
+		if (player.trainData && !Array.isArray(player.trainData)) {
+			const td = player.trainData;
+			if (typeof td === 'object' && td !== null) {
+				player.trainData = [
+					td.destination || "Unknown",
+					td.class || "Unknown",
+					td.headcode || "----",
+					td.headcodeClass || ""
+				];
+			} else {
+				player.trainData = null;
+			}
+		}
+	});
 
 	if (currentServers.length !== existingServers.length ||
 		!currentServers.every(server => existingServers.includes(server))) {
 
 		const selectedValue = serverSelect.value;
-		const totalPlayers = Object.values(serverData).reduce((count, players) => count + players.length, 0);
+		const totalPlayersCount = Object.values(serverData).reduce(
+			(count, playersArr) => count + (Array.isArray(playersArr) ? playersArr.length : 0),
+			0
+		);
 
-		let html = `<option value="all">All Servers (${totalPlayers})</option>`;
+		let html = `<option value="all">All Servers (${totalPlayersCount})</option>`;
 
 		currentServers.forEach(jobId => {
 			const serverName = jobId.length > 6 ? `Server ${jobId.substring(jobId.length - 6)}` : `Server ${jobId}`;
-			const playerCount = serverData[jobId].length;
+			const playerCount = Array.isArray(serverData[jobId]) ? serverData[jobId].length : 0;
 			const selected = selectedValue === jobId ? ' selected' : '';
 			html += `<option value="${jobId}"${selected}>${serverName} (${playerCount})</option>`;
 		});
@@ -280,9 +313,14 @@ function updateServerList() {
 	}
 }
 
+
 function getAllPlayers() {
-	return currentServer === 'all' ? Object.values(serverData).flat() : (serverData[currentServer] || []);
+	if (currentServer === 'all') {
+		return Object.values(serverData).flat().filter(p => p && typeof p === 'object');
+	}
+	return Array.isArray(serverData[currentServer]) ? serverData[currentServer] : [];
 }
+
 
 function worldToCanvas(worldX, worldY) {
 	const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
