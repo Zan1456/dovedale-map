@@ -6,7 +6,7 @@ const axios = require('axios');
 const app = express();
 const expressWs = require('express-ws')(app);
 const PORT = process.env.PORT || 3000;
-const ROBLOX_SECRET = process.env.ROBLOX_OTHER_KEY
+const ROBLOX_SECRET = "TEST"
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
