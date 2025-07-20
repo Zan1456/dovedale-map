@@ -52,7 +52,7 @@ async function changeLever(box, lever) {
 // Endpoint to register WebSocket clients
 app.ws('/ws', (ws, req) => {
 	webhooks.push(ws);
-	postToWebhook('New WebSocket client connected');
+	//postToWebhook('New WebSocket client connected');
 
 	ws.on('message', async (message) => {
 		message = JSON.parse(message);
@@ -62,7 +62,7 @@ app.ws('/ws', (ws, req) => {
 	});
 
 	ws.on('close', () => {
-		postToWebhook('WebSocket client disconnected');
+		//postToWebhook('WebSocket client disconnected');
 		webhooks = webhooks.filter((webhook) => webhook !== ws);
 	});
 });
