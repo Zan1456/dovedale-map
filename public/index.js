@@ -36,10 +36,6 @@ const totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
 
 const ws = new WebSocket(`wss://${window.location.host}/ws`);
 
-ws.addEventListener('open', () => {
-	console.log('Connected to WebSocket ✅');
-});
-
 ws.addEventListener('message', (event) => {
 	try {
 		const data = JSON.parse(event.data);
@@ -54,7 +50,7 @@ ws.addEventListener('message', (event) => {
 		updateServerList(data);  // pass data so updateServerList can access players safely
 		drawScene();
 	} catch (err) {
-		console.error('Error parsing WebSocket data', err);
+		console.error('Error parsing data', err);
 	}
 });
 
@@ -96,8 +92,6 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 trackTransforms();
 initializeMap();
 
-trackTransforms();
-
 function getCanvasCoordinates(event) {
 	const rect = canvas.getBoundingClientRect();
 	return {
@@ -123,7 +117,6 @@ function zoomAt(screenX, screenY, scaleFactor) {
 }
 
 function initializeMap() {
-
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
 
@@ -139,15 +132,47 @@ canvas.addEventListener('mousedown', (event) => {
 });
 
 canvas.addEventListener('mousemove', (event) => {
-	if (!isDragging) return;
+	if (isDragging) {
+		// Hide tooltip while dragging
+		if (hoveredPlayer) {
+			hoveredPlayer = null;
+			tooltip.classList.add('hidden');
+		}
 
-	const mousePos = getCanvasCoordinates(event);
-	const currentPoint = context.transformedPoint(mousePos.x, mousePos.y);
-	const dx = currentPoint.x - dragStart.x;
-	const dy = currentPoint.y - dragStart.y;
+		const mousePos = getCanvasCoordinates(event);
+		const currentPoint = context.transformedPoint(mousePos.x, mousePos.y);
+		const dx = currentPoint.x - dragStart.x;
+		const dy = currentPoint.y - dragStart.y;
 
-	context.translate(dx, dy);
-	drawScene();
+		context.translate(dx, dy);
+		drawScene();
+	} else {
+		// Handle hover detection when not dragging
+		const mousePos = getCanvasCoordinates(event);
+		const player = getPlayerAtPosition(mousePos.x, mousePos.y);
+		
+		if (player !== hoveredPlayer) {
+			hoveredPlayer = player;
+			
+			// Update tooltip
+			updateTooltip(player, event.clientX, event.clientY);
+			
+			// Redraw scene to update hover styling
+			drawScene();
+		}
+	}
+});
+
+canvas.addEventListener('mouseleave', () => {
+	isDragging = false;
+	dragStart = null;
+	
+	// Hide tooltip and clear hover state
+	if (hoveredPlayer) {
+		hoveredPlayer = null;
+		tooltip.classList.add('hidden');
+		drawScene();
+	}
 });
 
 canvas.addEventListener('mouseup', () => {
@@ -155,14 +180,8 @@ canvas.addEventListener('mouseup', () => {
 	dragStart = null;
 });
 
-canvas.addEventListener('mouseleave', () => {
-	isDragging = false;
-	dragStart = null;
-});
-
 canvas.addEventListener('wheel', (event) => {
 	event.preventDefault();
-
 	const zoomIntensity = 0.1;
 	const scale = event.deltaY < 0 ? 1 + zoomIntensity : 1 - zoomIntensity;
 	const mousePos = getCanvasCoordinates(event);
@@ -171,6 +190,9 @@ canvas.addEventListener('wheel', (event) => {
 }, { passive: false });
 
 canvas.addEventListener('touchstart', (event) => {
+	hoveredPlayer = null;
+	tooltip.classList.add('hidden');
+
 	if (event.touches.length === 1) {
 		const touchPos = getCanvasCoordinates(event.touches[0]);
 		dragStart = context.transformedPoint(touchPos.x, touchPos.y);
@@ -182,6 +204,9 @@ canvas.addEventListener('touchstart', (event) => {
 
 canvas.addEventListener('touchmove', (event) => {
 	event.preventDefault();
+
+	hoveredPlayer = null;
+	tooltip.classList.add('hidden');
 
 	if (event.touches.length === 1 && isDragging) {
 		const touchPos = getCanvasCoordinates(event.touches[0]);
@@ -203,7 +228,7 @@ canvas.addEventListener('touchmove', (event) => {
 	}
 }, { passive: false });
 
-canvas.addEventListener('touchend', () => {
+canvas.addEventListener('touchend', (event) => {
 	if (event.touches.length < 2) lastTouchDistance = 0;
 	if (event.touches.length === 0) {
 		isDragging = false;
@@ -313,11 +338,14 @@ function updateServerList(data) {
 	}
 }
 
+serverSelect.addEventListener('change', () => {
+	currentServer = serverSelect.value;
+	drawScene();
+});
 
 function getAllPlayers() {
 	return currentServer === 'all' ? Object.values(serverData).flat() : (serverData[currentServer] || []);
 }
-
 
 function worldToCanvas(worldX, worldY) {
 	const relativeX = (worldX - TOP_LEFT.x) / WORLD_WIDTH;
@@ -357,6 +385,165 @@ function getPlayerColour(name) {
 
 	const colorIndex = ((value % NAME_COLORS.length) + NAME_COLORS.length) % NAME_COLORS.length;
 	return NAME_COLORS[colorIndex];
+}
+
+function getPlayerAtPosition(canvasX, canvasY) {
+	const playersToCheck = getAllPlayers();
+	
+	for (const player of playersToCheck) {
+		const worldX = player.position?.x ?? 0;
+		const worldY = player.position?.y ?? 0;
+		
+		// Convert world coordinates to base canvas coordinates (before any transformations)
+		const baseCanvasPos = worldToCanvas(worldX, worldY);
+		
+		// Apply the current transformation to get the actual screen position
+		const transform = context.getTransform();
+		const screenX = baseCanvasPos.x * transform.a + baseCanvasPos.y * transform.c + transform.e;
+		const screenY = baseCanvasPos.x * transform.b + baseCanvasPos.y * transform.d + transform.f;
+		
+		// Calculate hit radius - this should match the VISUAL radius from drawScene
+		const baseRadius = 3; // Slightly larger than the 2 in drawScene for easier hovering
+		const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
+		const hitRadius = baseRadius * scaleFactor * Math.abs(transform.a); // transform.a contains the scale
+		
+		// Check distance in screen space
+		const distance = Math.hypot(screenX - canvasX, screenY - canvasY);
+		
+		if (distance <= hitRadius) {
+			return player;
+		}
+	}
+	
+	return null;
+}
+
+function updateTooltip(player, mouseX, mouseY) {
+	if (player) {
+		const name = player.username ?? "Unknown";
+		const x = Math.round(player.position?.x ?? 0);
+		const y = Math.round(player.position?.y ?? 0);
+		
+		// Update the existing tooltip elements
+		const playerElement = tooltip.querySelector('#player div');
+		if (playerElement) playerElement.textContent = name;
+		
+		// Show/hide optional sections based on available data
+		const destinationSection = tooltip.querySelector('#destination');
+		const trainNameSection = tooltip.querySelector('#train-name');
+		const headcodeSection = tooltip.querySelector('#headcode');
+		const trainClassSection = tooltip.querySelector('#train-class');
+		const serverSection = tooltip.querySelector('#server');
+		
+		// Always show player name
+		const playerSection = tooltip.querySelector('#player');
+		if (playerSection) playerSection.style.display = 'flex';
+		
+		// Handle train data if available and enabled
+		if (ENABLE_TRAIN_INFO && player.trainData && Array.isArray(player.trainData)) {
+			const [destination, trainClass, headcode] = player.trainData;
+			
+			if (destination && destination !== "Unknown" && destinationSection) {
+				const destDiv = destinationSection.querySelector('div');
+				if (destDiv) destDiv.textContent = destination;
+				destinationSection.style.display = 'flex';
+			} else if (destinationSection) {
+				destinationSection.style.display = 'none';
+			}
+			
+			if (trainClass && trainClass !== "Unknown" && trainClassSection) {
+				const classDiv = trainClassSection.querySelector('div');
+				if (classDiv) classDiv.textContent = trainClass;
+				trainClassSection.style.display = 'flex';
+			} else if (trainClassSection) {
+				trainClassSection.style.display = 'none';
+			}
+			
+			if (headcode && headcode !== "----" && headcodeSection) {
+				const headDiv = headcodeSection.querySelector('div');
+				if (headDiv) headDiv.textContent = headcode;
+				headcodeSection.style.display = 'flex';
+			} else if (headcodeSection) {
+				headcodeSection.style.display = 'none';
+			}
+			
+			// Hide train name section (not in data structure)
+			if (trainNameSection) trainNameSection.style.display = 'none';
+		} else {
+			// Hide all train-related sections
+			if (destinationSection) destinationSection.style.display = 'none';
+			if (trainNameSection) trainNameSection.style.display = 'none';
+			if (headcodeSection) headcodeSection.style.display = 'none';
+			if (trainClassSection) trainClassSection.style.display = 'none';
+		}
+		
+		// Show server info
+		if (serverSection && currentServer !== 'all') {
+			const serverDiv = serverSection.querySelector('div');
+			if (serverDiv) {
+				const serverName = currentServer.length > 6 ? currentServer.substring(currentServer.length - 6) : currentServer;
+				serverDiv.textContent = serverName;
+			}
+			serverSection.style.display = 'flex';
+		} else if (serverSection) {
+			serverSection.style.display = 'none';
+		}
+		
+		// Calculate the screen position of the player blip
+		const worldX = player.position?.x ?? 0;
+		const worldY = player.position?.y ?? 0;
+		const baseCanvasPos = worldToCanvas(worldX, worldY);
+		
+		// Apply current transformation to get screen coordinates
+		const transform = context.getTransform();
+		const screenX = baseCanvasPos.x * transform.a + baseCanvasPos.y * transform.c + transform.e;
+		const screenY = baseCanvasPos.x * transform.b + baseCanvasPos.y * transform.d + transform.f;
+		
+		// Get canvas position relative to viewport
+		const canvasRect = canvas.getBoundingClientRect();
+		const tooltipX = canvasRect.left + screenX;
+		const tooltipY = canvasRect.top + screenY;
+		
+		// Position tooltip with offset from the blip
+		let finalX = tooltipX + 15;
+		let finalY = tooltipY - 40;
+		
+		// Make tooltip visible first to get its dimensions
+		tooltip.classList.remove('hidden');
+		tooltip.style.visibility = 'hidden';
+		
+		// Get tooltip dimensions for boundary checking
+		const tooltipRect = tooltip.getBoundingClientRect();
+		const viewportWidth = window.innerWidth;
+		const viewportHeight = window.innerHeight;
+		
+		// Adjust if tooltip would go off right edge
+		if (finalX + tooltipRect.width > viewportWidth) {
+			finalX = tooltipX - tooltipRect.width - 15;
+		}
+		
+		// Adjust if tooltip would go off top edge
+		if (finalY < 0) {
+			finalY = tooltipY + 20;
+		}
+		
+		// Adjust if tooltip would go off bottom edge
+		if (finalY + tooltipRect.height > viewportHeight) {
+			finalY = tooltipY - tooltipRect.height - 20;
+		}
+		
+		// Adjust if tooltip would go off left edge
+		if (finalX < 0) {
+			finalX = tooltipX + 15;
+		}
+		
+		tooltip.style.left = `${finalX}px`;
+		tooltip.style.top = `${finalY}px`;
+		tooltip.style.visibility = 'visible';
+		
+	} else {
+		tooltip.classList.add('hidden');
+	}
 }
 
 function drawGrid() {
@@ -428,7 +615,6 @@ function drawScene() {
 
 	const playersToShow = getAllPlayers();
 	players.innerHTML = `Players: ${playersToShow.length}`;
-	console.log('Players to draw:', playersToShow);
 
 	playersToShow.forEach(player => {
 		// player is like { username: "...", position: { x: ..., y: ... } }
@@ -452,7 +638,6 @@ function drawScene() {
 		context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
 		context.stroke();
 	});
-
 }
 
 canvas.width = window.innerWidth;
