@@ -6,7 +6,7 @@ const axios = require('axios');
 const app = express();
 const expressWs = require('express-ws')(app);
 const PORT = process.env.PORT || 3000;
-const ROBLOX_SECRET = "TEST"
+const ROBLOX_SECRET = process.env.ROBLOX_OTHER_KEY || "TEST";
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -80,11 +80,8 @@ app.post('/positions', (req, res) => {
 	const data = req.body;
 
 	console.log('Received data from Roblox:', data);
-	postToWebhook(`Received data: ${JSON.stringify(data)}`);
-	postToWebhook(!data.token || data.token !== ROBLOX_SECRET);
 
-	if (data.token !== "TEST") {
-		//postToWebhook('Invalid key received in /positions');
+	if (!data.token || data.token !== ROBLOX_SECRET) {
 		return res.status(401).send('Unauthorized: Invalid key');
 	}
 

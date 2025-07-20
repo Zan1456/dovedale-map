@@ -42,10 +42,10 @@ ws.addEventListener('message', (event) => {
 
 		console.log('Received data:', data);
 
-		const job_id = data.job_id;
-		const positions = Array.isArray(data.positions) ? data.positions : [];
+		const jobId = data.jobId;
+		const playersArray = Array.isArray(data.players) ? data.players : [];
 
-		serverData[job_id] = positions;
+		serverData[jobId] = playersArray;
 
 		updateServerList(data);  // pass data so updateServerList can access players safely
 		drawScene();
@@ -289,11 +289,11 @@ function updateServerList(data) {
 	const currentServers = Object.keys(serverData);
 	const existingServers = Array.from(serverSelect.options).slice(1).map(opt => opt.value);
 
-	// Safely get players array from data.positions
-	const players = data && Array.isArray(data.positions) ? data.positions : [];
+	// Safely get players array from data.players
+	const playersArray = data && Array.isArray(data.players) ? data.players : [];
 
-	// Normalize trainData if needed
-	players.forEach(player => {
+	// Normalize trainData if needed (the new format should already be correct)
+	playersArray.forEach(player => {
 		if (player.trainData && !Array.isArray(player.trainData)) {
 			const td = player.trainData;
 			if (typeof td === 'object' && td !== null) {
