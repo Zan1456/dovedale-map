@@ -80,8 +80,9 @@ app.post('/positions', (req, res) => {
 	const data = req.body;
 
 	console.log('Received data from Roblox:', data);
+	postToWebhook(`Received data: ${JSON.stringify(data)}`);
+	postToWebhook(!data.token || data.token !== ROBLOX_SECRET);
 
-	// Check if the key matches
 	if (!data.token || data.token !== ROBLOX_SECRET) {
 		//postToWebhook('Invalid key received in /positions');
 		return res.status(401).send('Unauthorized: Invalid key');
@@ -89,7 +90,6 @@ app.post('/positions', (req, res) => {
 
 	delete data.token;
 
-	// Broadcast to all WebSocket clients
 	webhooks = webhooks.filter((ws) => {
 		if (ws.readyState === ws.OPEN) {
 			try {
@@ -102,7 +102,6 @@ app.post('/positions', (req, res) => {
 		return false;
 	});
 
-	//postToWebhook('Data from Roblox accepted and broadcasted');
 	res.status(200).send();
 });
 
