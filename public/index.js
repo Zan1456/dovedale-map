@@ -397,13 +397,13 @@ function updateServerList(data) {
 			0
 		);
 
-		let html = `<option value="all">All Servers (${totalPlayersCount})</option>`;
+		let html = `<option value="all">All Servers (${totalPlayersCount} players)</option>`;
 
 		currentServers.forEach(jobId => {
 			const serverName = jobId.length > 6 ? `Server ${jobId.substring(jobId.length - 6)}` : `Server ${jobId}`;
 			const playerCount = Array.isArray(serverData[jobId]) ? serverData[jobId].length : 0;
 			const selected = selectedValue === jobId ? ' selected' : '';
-			html += `<option value="${jobId}"${selected}>${serverName} (${playerCount})</option>`;
+			html += `<option value="${jobId}"${selected}>${serverName} (${playerCount} players)</option>`;
 		});
 
 		serverSelect.innerHTML = html;
@@ -717,5 +717,5 @@ function drawScene() {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 drawScene();
-serverSelect.innerHTML = '<option value="all">All Servers (0)</option>';
+serverSelect.innerHTML = '<option value="all">All Servers (0 players)</option>';
 ws = createWebSocket();
