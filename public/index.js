@@ -14,6 +14,10 @@ let isDragging = false;
 let currentScale = 1;
 let touchStartX, touchStartY;
 let lastTouchDistance = 0;
+let ws = null;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+let reconnectTimeout = null;
 
 const TOP_LEFT = { x: -23818, y: -10426 };
 const BOTTOM_RIGHT = { x: 20504, y: 11377 };
@@ -33,35 +37,8 @@ const MAP_CONFIG = {
 const mapImages = [];
 let loadedImages = 0;
 const totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
-
-const ws = new WebSocket(`wss://${window.location.host}/ws`);
-
-ws.addEventListener('message', (event) => {
-	try {
-		const data = JSON.parse(event.data);
-
-		//console.log('Received data:', data);
-
-		const jobId = data.jobId;
-		const playersArray = Array.isArray(data.players) ? data.players : [];
-
-		serverData[jobId] = playersArray;
-
-		updateServerList(data);  // pass data so updateServerList can access players safely
-		drawScene();
-	} catch (err) {
-		console.error('Error parsing data', err);
-	}
-});
-
-ws.addEventListener('error', (err) => {
-	console.error('WebSocket error:', err);
-});
-
-ws.addEventListener('close', () => {
-	console.warn('WebSocket closed. Trying to reconnect...');
-	setTimeout(() => location.reload(), 1000);
-});
+const connectionPopup = document.getElementById('connectionPopup');
+const reconnectBtn = document.getElementById('reconnectBtn');
 
 for (let row = 0; row < MAP_CONFIG.rows; row++) {
 	mapImages[row] = [];
@@ -91,6 +68,44 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 
 trackTransforms();
 initializeMap();
+
+function showConnectionPopup() {
+	connectionPopup.classList.remove('hidden');
+	updateReconnectButton();
+}
+
+function hideConnectionPopup() {
+	connectionPopup.classList.add('hidden');
+	reconnectBtn.classList.remove('connecting');
+	reconnectBtn.disabled = false;
+	reconnectBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M3 21v-5h5"/>
+    </svg>
+    Reconnect
+  `;
+}
+
+function createWebSocket() {
+	// Clear any existing timeout
+	if (reconnectTimeout) {
+		clearTimeout(reconnectTimeout);
+		reconnectTimeout = null;
+	}
+
+	ws = new WebSocket(`wss://${window.location.host}/ws`);
+
+	ws.addEventListener('open', () => {
+		console.log('WebSocket connected');
+		reconnectAttempts = 0;
+		hideConnectionPopup();
+	});
+
+	return ws;
+}
 
 function getCanvasCoordinates(event) {
 	const rect = canvas.getBoundingClientRect();
@@ -150,23 +165,69 @@ canvas.addEventListener('mousemove', (event) => {
 		// Handle hover detection when not dragging
 		const mousePos = getCanvasCoordinates(event);
 		const player = getPlayerAtPosition(mousePos.x, mousePos.y);
-		
+
 		if (player !== hoveredPlayer) {
 			hoveredPlayer = player;
-			
+
 			// Update tooltip
 			updateTooltip(player, event.clientX, event.clientY);
-			
+
 			// Redraw scene to update hover styling
 			drawScene();
 		}
 	}
 });
 
+function updateReconnectButton() {
+	if (reconnectAttempts >= maxReconnectAttempts) {
+		reconnectBtn.innerHTML = 'Max attempts reached';
+		reconnectBtn.disabled = true;
+		reconnectBtn.classList.remove('connecting');
+	}
+}
+
+function attemptReconnect() {
+	if (reconnectAttempts >= maxReconnectAttempts) {
+		updateReconnectButton();
+		return;
+	}
+
+	reconnectAttempts++;
+	console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
+
+	reconnectBtn.classList.add('connecting');
+	reconnectBtn.disabled = true;
+	reconnectBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M3 21v-5h5"/>
+    </svg>
+    Connecting... (${reconnectAttempts}/${maxReconnectAttempts})
+  `;
+
+	// Close existing connection if it exists
+	if (ws && ws.readyState !== WebSocket.CLOSED) {
+		ws.close();
+	}
+
+	createWebSocket();
+}
+
+// Manual reconnect button handler
+reconnectBtn.addEventListener('click', () => {
+	if (reconnectAttempts >= maxReconnectAttempts) {
+		// Reset attempts if user manually clicks
+		reconnectAttempts = 0;
+	}
+	attemptReconnect();
+});
+
 canvas.addEventListener('mouseleave', () => {
 	isDragging = false;
 	dragStart = null;
-	
+
 	// Hide tooltip and clear hover state
 	if (hoveredPlayer) {
 		hoveredPlayer = null;
@@ -234,6 +295,117 @@ canvas.addEventListener('touchend', (event) => {
 		isDragging = false;
 		dragStart = null;
 	}
+});
+
+function createWebSocket() {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+
+  ws = new WebSocket(`wss://${window.location.host}/ws`);
+
+  ws.addEventListener('open', () => {
+    console.log('WebSocket connected');
+    reconnectAttempts = 0;
+    hideConnectionPopup();
+  });
+
+  ws.addEventListener('message', (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      const jobId = data.jobId;
+      const playersArray = Array.isArray(data.players) ? data.players : [];
+
+      serverData[jobId] = playersArray;
+      updateServerList(data);
+      drawScene();
+    } catch (err) {
+      console.error('Error parsing data', err);
+    }
+  });
+
+  ws.addEventListener('error', (err) => {
+    console.error('WebSocket error:', err);
+  });
+
+  ws.addEventListener('close', (event) => {
+    console.warn('WebSocket closed:', event.code, event.reason);
+    showConnectionPopup();
+    
+    if (reconnectAttempts < maxReconnectAttempts) {
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+      reconnectTimeout = setTimeout(() => {
+        attemptReconnect();
+      }, delay);
+    }
+  });
+
+  return ws;
+}
+
+function showConnectionPopup() {
+  connectionPopup.classList.remove('hidden');
+  updateReconnectButton();
+}
+
+function hideConnectionPopup() {
+  connectionPopup.classList.add('hidden');
+  reconnectBtn.classList.remove('connecting');
+  reconnectBtn.disabled = false;
+  reconnectBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M3 21v-5h5"/>
+    </svg>
+    Reconnect
+  `;
+}
+
+function updateReconnectButton() {
+  if (reconnectAttempts >= maxReconnectAttempts) {
+    reconnectBtn.innerHTML = 'Max attempts reached';
+    reconnectBtn.disabled = true;
+    reconnectBtn.classList.remove('connecting');
+  }
+}
+
+function attemptReconnect() {
+  if (reconnectAttempts >= maxReconnectAttempts) {
+    updateReconnectButton();
+    return;
+  }
+
+  reconnectAttempts++;
+  console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
+  
+  reconnectBtn.classList.add('connecting');
+  reconnectBtn.disabled = true;
+  reconnectBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M3 21v-5h5"/>
+    </svg>
+    Connecting... (${reconnectAttempts}/${maxReconnectAttempts})
+  `;
+
+  if (ws && ws.readyState !== WebSocket.CLOSED) {
+    ws.close();
+  }
+
+  createWebSocket();
+}
+
+// Reconnect button event listener
+reconnectBtn.addEventListener('click', () => {
+  if (reconnectAttempts >= maxReconnectAttempts) {
+    reconnectAttempts = 0;
+  }
+  attemptReconnect();
 });
 
 function trackTransforms() {
@@ -389,32 +561,32 @@ function getPlayerColour(name) {
 
 function getPlayerAtPosition(canvasX, canvasY) {
 	const playersToCheck = getAllPlayers();
-	
+
 	for (const player of playersToCheck) {
 		const worldX = player.position?.x ?? 0;
 		const worldY = player.position?.y ?? 0;
-		
+
 		// Convert world coordinates to base canvas coordinates (before any transformations)
 		const baseCanvasPos = worldToCanvas(worldX, worldY);
-		
+
 		// Apply the current transformation to get the actual screen position
 		const transform = context.getTransform();
 		const screenX = baseCanvasPos.x * transform.a + baseCanvasPos.y * transform.c + transform.e;
 		const screenY = baseCanvasPos.x * transform.b + baseCanvasPos.y * transform.d + transform.f;
-		
+
 		// Calculate hit radius - this should match the VISUAL radius from drawScene
 		const baseRadius = 3; // Slightly larger than the 2 in drawScene for easier hovering
 		const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
 		const hitRadius = baseRadius * scaleFactor * Math.abs(transform.a); // transform.a contains the scale
-		
+
 		// Check distance in screen space
 		const distance = Math.hypot(screenX - canvasX, screenY - canvasY);
-		
+
 		if (distance <= hitRadius) {
 			return player;
 		}
 	}
-	
+
 	return null;
 }
 
@@ -423,26 +595,26 @@ function updateTooltip(player, mouseX, mouseY) {
 		const name = player.username ?? "Unknown";
 		const x = Math.round(player.position?.x ?? 0);
 		const y = Math.round(player.position?.y ?? 0);
-		
+
 		// Update the existing tooltip elements
 		const playerElement = tooltip.querySelector('#player div');
 		if (playerElement) playerElement.textContent = name;
-		
+
 		// Show/hide optional sections based on available data
 		const destinationSection = tooltip.querySelector('#destination');
 		const trainNameSection = tooltip.querySelector('#train-name');
 		const headcodeSection = tooltip.querySelector('#headcode');
 		const trainClassSection = tooltip.querySelector('#train-class');
 		const serverSection = tooltip.querySelector('#server');
-		
+
 		// Always show player name
 		const playerSection = tooltip.querySelector('#player');
 		if (playerSection) playerSection.style.display = 'flex';
-		
+
 		// Handle train data if available and enabled
 		if (ENABLE_TRAIN_INFO && player.trainData && Array.isArray(player.trainData)) {
 			const [destination, trainClass, headcode] = player.trainData;
-			
+
 			if (destination && destination !== "Unknown" && destinationSection) {
 				const destDiv = destinationSection.querySelector('div');
 				if (destDiv) destDiv.textContent = destination;
@@ -450,7 +622,7 @@ function updateTooltip(player, mouseX, mouseY) {
 			} else if (destinationSection) {
 				destinationSection.style.display = 'none';
 			}
-			
+
 			if (trainClass && trainClass !== "Unknown" && trainClassSection) {
 				const classDiv = trainClassSection.querySelector('div');
 				if (classDiv) classDiv.textContent = trainClass;
@@ -458,7 +630,7 @@ function updateTooltip(player, mouseX, mouseY) {
 			} else if (trainClassSection) {
 				trainClassSection.style.display = 'none';
 			}
-			
+
 			if (headcode && headcode !== "----" && headcodeSection) {
 				const headDiv = headcodeSection.querySelector('div');
 				if (headDiv) headDiv.textContent = headcode;
@@ -466,7 +638,7 @@ function updateTooltip(player, mouseX, mouseY) {
 			} else if (headcodeSection) {
 				headcodeSection.style.display = 'none';
 			}
-			
+
 			// Hide train name section (not in data structure)
 			if (trainNameSection) trainNameSection.style.display = 'none';
 		} else {
@@ -476,7 +648,7 @@ function updateTooltip(player, mouseX, mouseY) {
 			if (headcodeSection) headcodeSection.style.display = 'none';
 			if (trainClassSection) trainClassSection.style.display = 'none';
 		}
-		
+
 		// Show server info
 		if (serverSection && currentServer !== 'all') {
 			const serverDiv = serverSection.querySelector('div');
@@ -488,59 +660,59 @@ function updateTooltip(player, mouseX, mouseY) {
 		} else if (serverSection) {
 			serverSection.style.display = 'none';
 		}
-		
+
 		// Calculate the screen position of the player blip
 		const worldX = player.position?.x ?? 0;
 		const worldY = player.position?.y ?? 0;
 		const baseCanvasPos = worldToCanvas(worldX, worldY);
-		
+
 		// Apply current transformation to get screen coordinates
 		const transform = context.getTransform();
 		const screenX = baseCanvasPos.x * transform.a + baseCanvasPos.y * transform.c + transform.e;
 		const screenY = baseCanvasPos.x * transform.b + baseCanvasPos.y * transform.d + transform.f;
-		
+
 		// Get canvas position relative to viewport
 		const canvasRect = canvas.getBoundingClientRect();
 		const tooltipX = canvasRect.left + screenX;
 		const tooltipY = canvasRect.top + screenY;
-		
+
 		// Position tooltip with offset from the blip
 		let finalX = tooltipX + 15;
 		let finalY = tooltipY - 40;
-		
+
 		// Make tooltip visible first to get its dimensions
 		tooltip.classList.remove('hidden');
 		tooltip.style.visibility = 'hidden';
-		
+
 		// Get tooltip dimensions for boundary checking
 		const tooltipRect = tooltip.getBoundingClientRect();
 		const viewportWidth = window.innerWidth;
 		const viewportHeight = window.innerHeight;
-		
+
 		// Adjust if tooltip would go off right edge
 		if (finalX + tooltipRect.width > viewportWidth) {
 			finalX = tooltipX - tooltipRect.width - 15;
 		}
-		
+
 		// Adjust if tooltip would go off top edge
 		if (finalY < 0) {
 			finalY = tooltipY + 20;
 		}
-		
+
 		// Adjust if tooltip would go off bottom edge
 		if (finalY + tooltipRect.height > viewportHeight) {
 			finalY = tooltipY - tooltipRect.height - 20;
 		}
-		
+
 		// Adjust if tooltip would go off left edge
 		if (finalX < 0) {
 			finalX = tooltipX + 15;
 		}
-		
+
 		tooltip.style.left = `${finalX}px`;
 		tooltip.style.top = `${finalY}px`;
 		tooltip.style.visibility = 'visible';
-		
+
 	} else {
 		tooltip.classList.add('hidden');
 	}
@@ -643,3 +815,4 @@ function drawScene() {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 drawScene();
+ws = createWebSocket();
