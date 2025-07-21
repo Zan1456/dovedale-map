@@ -90,7 +90,6 @@ function hideConnectionPopup() {
 }
 
 function createWebSocket() {
-	// Clear any existing timeout
 	if (reconnectTimeout) {
 		clearTimeout(reconnectTimeout);
 		reconnectTimeout = null;
@@ -148,7 +147,6 @@ canvas.addEventListener('mousedown', (event) => {
 
 canvas.addEventListener('mousemove', (event) => {
 	if (isDragging) {
-		// Hide tooltip while dragging
 		if (hoveredPlayer) {
 			hoveredPlayer = null;
 			tooltip.classList.add('hidden');
@@ -162,17 +160,14 @@ canvas.addEventListener('mousemove', (event) => {
 		context.translate(dx, dy);
 		drawScene();
 	} else {
-		// Handle hover detection when not dragging
 		const mousePos = getCanvasCoordinates(event);
 		const player = getPlayerAtPosition(mousePos.x, mousePos.y);
 
 		if (player !== hoveredPlayer) {
 			hoveredPlayer = player;
 
-			// Update tooltip
 			updateTooltip(player, event.clientX, event.clientY);
 
-			// Redraw scene to update hover styling
 			drawScene();
 		}
 	}
@@ -207,7 +202,6 @@ function attemptReconnect() {
     Connecting... (${reconnectAttempts}/${maxReconnectAttempts})
   `;
 
-	// Close existing connection if it exists
 	if (ws && ws.readyState !== WebSocket.CLOSED) {
 		ws.close();
 	}
@@ -215,10 +209,8 @@ function attemptReconnect() {
 	createWebSocket();
 }
 
-// Manual reconnect button handler
 reconnectBtn.addEventListener('click', () => {
 	if (reconnectAttempts >= maxReconnectAttempts) {
-		// Reset attempts if user manually clicks
 		reconnectAttempts = 0;
 	}
 	attemptReconnect();
@@ -228,7 +220,6 @@ canvas.addEventListener('mouseleave', () => {
 	isDragging = false;
 	dragStart = null;
 
-	// Hide tooltip and clear hover state
 	if (hoveredPlayer) {
 		hoveredPlayer = null;
 		tooltip.classList.add('hidden');
@@ -400,7 +391,6 @@ function attemptReconnect() {
   createWebSocket();
 }
 
-// Reconnect button event listener
 reconnectBtn.addEventListener('click', () => {
   if (reconnectAttempts >= maxReconnectAttempts) {
     reconnectAttempts = 0;
@@ -461,10 +451,8 @@ function updateServerList(data) {
 	const currentServers = Object.keys(serverData);
 	const existingServers = Array.from(serverSelect.options).slice(1).map(opt => opt.value);
 
-	// Safely get players array from data.players
 	const playersArray = data && Array.isArray(data.players) ? data.players : [];
 
-	// Normalize trainData if needed (the new format should already be correct)
 	playersArray.forEach(player => {
 		if (player.trainData && !Array.isArray(player.trainData)) {
 			const td = player.trainData;
@@ -566,20 +554,16 @@ function getPlayerAtPosition(canvasX, canvasY) {
 		const worldX = player.position?.x ?? 0;
 		const worldY = player.position?.y ?? 0;
 
-		// Convert world coordinates to base canvas coordinates (before any transformations)
 		const baseCanvasPos = worldToCanvas(worldX, worldY);
 
-		// Apply the current transformation to get the actual screen position
 		const transform = context.getTransform();
 		const screenX = baseCanvasPos.x * transform.a + baseCanvasPos.y * transform.c + transform.e;
 		const screenY = baseCanvasPos.x * transform.b + baseCanvasPos.y * transform.d + transform.f;
 
-		// Calculate hit radius - this should match the VISUAL radius from drawScene
 		const baseRadius = 3; // Slightly larger than the 2 in drawScene for easier hovering
 		const scaleFactor = Math.max(0.3, 1 / Math.pow(currentScale, 0.4));
 		const hitRadius = baseRadius * scaleFactor * Math.abs(transform.a); // transform.a contains the scale
 
-		// Check distance in screen space
 		const distance = Math.hypot(screenX - canvasX, screenY - canvasY);
 
 		if (distance <= hitRadius) {
@@ -596,22 +580,18 @@ function updateTooltip(player, mouseX, mouseY) {
 		const x = Math.round(player.position?.x ?? 0);
 		const y = Math.round(player.position?.y ?? 0);
 
-		// Update the existing tooltip elements
 		const playerElement = tooltip.querySelector('#player div');
 		if (playerElement) playerElement.textContent = name;
 
-		// Show/hide optional sections based on available data
 		const destinationSection = tooltip.querySelector('#destination');
 		const trainNameSection = tooltip.querySelector('#train-name');
 		const headcodeSection = tooltip.querySelector('#headcode');
 		const trainClassSection = tooltip.querySelector('#train-class');
 		const serverSection = tooltip.querySelector('#server');
 
-		// Always show player name
 		const playerSection = tooltip.querySelector('#player');
 		if (playerSection) playerSection.style.display = 'flex';
 
-		// Handle train data if available and enabled
 		if (ENABLE_TRAIN_INFO && player.trainData && Array.isArray(player.trainData)) {
 			const [destination, trainClass, headcode] = player.trainData;
 
@@ -639,17 +619,14 @@ function updateTooltip(player, mouseX, mouseY) {
 				headcodeSection.style.display = 'none';
 			}
 
-			// Hide train name section (not in data structure)
 			if (trainNameSection) trainNameSection.style.display = 'none';
 		} else {
-			// Hide all train-related sections
 			if (destinationSection) destinationSection.style.display = 'none';
 			if (trainNameSection) trainNameSection.style.display = 'none';
 			if (headcodeSection) headcodeSection.style.display = 'none';
 			if (trainClassSection) trainClassSection.style.display = 'none';
 		}
 
-		// Show server info
 		if (serverSection && currentServer === 'all') {
 			const serverDiv = serverSection.querySelector('div');
 			if (serverDiv) {
@@ -661,50 +638,40 @@ function updateTooltip(player, mouseX, mouseY) {
 			serverSection.style.display = 'none';
 		}
 
-		// Calculate the screen position of the player blip
 		const worldX = player.position?.x ?? 0;
 		const worldY = player.position?.y ?? 0;
 		const baseCanvasPos = worldToCanvas(worldX, worldY);
 
-		// Apply current transformation to get screen coordinates
 		const transform = context.getTransform();
 		const screenX = baseCanvasPos.x * transform.a + baseCanvasPos.y * transform.c + transform.e;
 		const screenY = baseCanvasPos.x * transform.b + baseCanvasPos.y * transform.d + transform.f;
 
-		// Get canvas position relative to viewport
 		const canvasRect = canvas.getBoundingClientRect();
 		const tooltipX = canvasRect.left + screenX;
 		const tooltipY = canvasRect.top + screenY;
 
-		// Position tooltip with offset from the blip
 		let finalX = tooltipX + 15;
 		let finalY = tooltipY - 40;
 
-		// Make tooltip visible first to get its dimensions
 		tooltip.classList.remove('hidden');
 		tooltip.style.visibility = 'hidden';
 
-		// Get tooltip dimensions for boundary checking
 		const tooltipRect = tooltip.getBoundingClientRect();
 		const viewportWidth = window.innerWidth;
 		const viewportHeight = window.innerHeight;
 
-		// Adjust if tooltip would go off right edge
 		if (finalX + tooltipRect.width > viewportWidth) {
 			finalX = tooltipX - tooltipRect.width - 15;
 		}
 
-		// Adjust if tooltip would go off top edge
 		if (finalY < 0) {
 			finalY = tooltipY + 20;
 		}
 
-		// Adjust if tooltip would go off bottom edge
 		if (finalY + tooltipRect.height > viewportHeight) {
 			finalY = tooltipY - tooltipRect.height - 20;
 		}
 
-		// Adjust if tooltip would go off left edge
 		if (finalX < 0) {
 			finalX = tooltipX + 15;
 		}
