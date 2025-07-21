@@ -144,13 +144,6 @@ function updateReconnectButton() {
 	}
 }
 
-reconnectBtn.addEventListener('click', () => {
-	if (reconnectAttempts >= maxReconnectAttempts) {
-		reconnectAttempts = 0;
-	}
-	attemptReconnect();
-});
-
 canvas.addEventListener('mouseleave', () => {
 	isDragging = false;
 	dragStart = null;
@@ -224,63 +217,63 @@ canvas.addEventListener('touchend', (event) => {
 });
 
 function createWebSocket() {
-  if (reconnectTimeout) {
-    clearTimeout(reconnectTimeout);
-    reconnectTimeout = null;
-  }
+	if (reconnectTimeout) {
+		clearTimeout(reconnectTimeout);
+		reconnectTimeout = null;
+	}
 
-  ws = new WebSocket(`wss://${window.location.host}/ws`);
+	ws = new WebSocket(`wss://${window.location.host}/ws`);
 
-  ws.addEventListener('open', () => {
-    console.log('WebSocket connected');
-    reconnectAttempts = 0;
-    hideConnectionPopup();
-  });
+	ws.addEventListener('open', () => {
+		console.log('WebSocket connected');
+		reconnectAttempts = 0;
+		hideConnectionPopup();
+	});
 
-  ws.addEventListener('message', (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      const jobId = data.jobId;
-      const playersArray = Array.isArray(data.players) ? data.players : [];
+	ws.addEventListener('message', (event) => {
+		try {
+			const data = JSON.parse(event.data);
+			const jobId = data.jobId;
+			const playersArray = Array.isArray(data.players) ? data.players : [];
 
-      serverData[jobId] = playersArray;
-      updateServerList(data);
-      drawScene();
-    } catch (err) {
-      console.error('Error parsing data', err);
-    }
-  });
+			serverData[jobId] = playersArray;
+			updateServerList(data);
+			drawScene();
+		} catch (err) {
+			console.error('Error parsing data', err);
+		}
+	});
 
-  ws.addEventListener('error', (err) => {
-    console.warn('WebSocket error:', err);
-	attemptReconnect();
-  });
+	ws.addEventListener('error', (err) => {
+		console.warn('WebSocket error:', err);
+		attemptReconnect();
+	});
 
-  ws.addEventListener('close', (event) => {
-    console.warn('WebSocket closed:', event.code, event.reason);
-    showConnectionPopup();	
-    
-    if (reconnectAttempts < maxReconnectAttempts) {
-      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-      reconnectTimeout = setTimeout(() => {
-        attemptReconnect();
-      }, delay);
-    }
-  });
+	ws.addEventListener('close', (event) => {
+		console.warn('WebSocket closed:', event.code, event.reason);
+		showConnectionPopup();
 
-  return ws;
+		if (reconnectAttempts < maxReconnectAttempts) {
+			const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+			reconnectTimeout = setTimeout(() => {
+				attemptReconnect();
+			}, delay);
+		}
+	});
+
+	return ws;
 }
 
 function showConnectionPopup() {
-  connectionPopup.classList.remove('hidden');
-  updateReconnectButton();
+	connectionPopup.classList.remove('hidden');
+	updateReconnectButton();
 }
 
 function hideConnectionPopup() {
-  connectionPopup.classList.add('hidden');
-  reconnectBtn.classList.remove('connecting');
-  reconnectBtn.disabled = false;
-  reconnectBtn.innerHTML = `
+	connectionPopup.classList.add('hidden');
+	reconnectBtn.classList.remove('connecting');
+	reconnectBtn.disabled = false;
+	reconnectBtn.innerHTML = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
       <path d="M21 3v5h-5"/>
@@ -292,17 +285,17 @@ function hideConnectionPopup() {
 }
 
 function attemptReconnect() {
-  if (reconnectAttempts >= maxReconnectAttempts) {
-    updateReconnectButton();
-    return;
-  }
+	if (reconnectAttempts >= maxReconnectAttempts) {
+		updateReconnectButton();
+		return;
+	}
 
-  reconnectAttempts++;
-  //console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
-  
-  reconnectBtn.classList.add('connecting');
-  reconnectBtn.disabled = true;
-  reconnectBtn.innerHTML = `
+	reconnectAttempts++;
+	//console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
+
+	reconnectBtn.classList.add('connecting');
+	reconnectBtn.disabled = true;
+	reconnectBtn.innerHTML = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
       <path d="M21 3v5h-5"/>
@@ -312,18 +305,16 @@ function attemptReconnect() {
     Connecting...
   `;
 
-  if (ws && ws.readyState !== WebSocket.CLOSED) {
-    ws.close();
-  }
+	if (ws && ws.readyState !== WebSocket.CLOSED) {
+		ws.close();
+	}
 
-  createWebSocket();
+	createWebSocket();
 }
 
 reconnectBtn.addEventListener('click', () => {
-  if (reconnectAttempts >= maxReconnectAttempts) {
-    reconnectAttempts = 0;
-  }
-  attemptReconnect();
+	reconnectAttempts = 0;
+	attemptReconnect();
 });
 
 function trackTransforms() {
@@ -558,8 +549,24 @@ function updateTooltip(player, mouseX, mouseY) {
 		if (serverSection && currentServer === 'all') {
 			const serverDiv = serverSection.querySelector('div');
 			if (serverDiv) {
-				const serverName = currentServer.length > 6 ? currentServer.substring(currentServer.length - 6) : currentServer;
-				serverDiv.textContent = player.serverName;
+				let serverName = 'Unknown';
+
+				if (currentServer === 'all') {
+					for (const [jobId, players] of Object.entries(serverData)) {
+						if (players.includes(player)) {
+							serverName = jobId.length > 6
+								? `Server ${jobId.substring(jobId.length - 6)}`
+								: `Server ${jobId}`;
+							break;
+						}
+					}
+				} else {
+					serverName = currentServer.length > 6
+						? `Server ${currentServer.substring(currentServer.length - 6)}`
+						: `Server ${currentServer}`;
+				}
+
+				serverDiv.textContent = serverName;
 			}
 			serverSection.style.display = 'flex';
 		} else if (serverSection) {
