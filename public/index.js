@@ -815,4 +815,5 @@ function drawScene() {
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 drawScene();
+serverSelect.innerHTML = '<option value="all">All Servers (0)</option>';
 ws = createWebSocket();
