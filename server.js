@@ -86,6 +86,7 @@ app.post('/positions', (req, res) => {
 	}
 
 	delete data.token;
+	console.log(JSON.stringify(data.players));
 
 	webhooks = webhooks.filter((ws) => {
 		if (ws.readyState === ws.OPEN) {
