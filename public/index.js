@@ -555,15 +555,15 @@ function updateTooltip(player, mouseX, mouseY) {
 					for (const [jobId, players] of Object.entries(serverData)) {
 						if (players.includes(player)) {
 							serverName = jobId.length > 6
-								? `Server ${jobId.substring(jobId.length - 6)}`
-								: `Server ${jobId}`;
+								? `${jobId.substring(jobId.length - 6)}`
+								: `${jobId}`;
 							break;
 						}
 					}
 				} else {
 					serverName = currentServer.length > 6
-						? `Server ${currentServer.substring(currentServer.length - 6)}`
-						: `Server ${currentServer}`;
+						? `${currentServer.substring(currentServer.length - 6)}`
+						: `${currentServer}`;
 				}
 
 				serverDiv.textContent = serverName;
