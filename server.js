@@ -85,8 +85,6 @@ app.post('/positions', (req, res) => {
 		return res.status(401).send('Unauthorized: Invalid key');
 	}
 
-	postToWebhook(data.players);
-
 	delete data.token;
 
 	webhooks = webhooks.filter((ws) => {
