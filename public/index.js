@@ -40,7 +40,7 @@ ws.addEventListener('message', (event) => {
 	try {
 		const data = JSON.parse(event.data);
 
-		console.log('Received data:', data);
+		//console.log('Received data:', data);
 
 		const jobId = data.jobId;
 		const playersArray = Array.isArray(data.players) ? data.players : [];
