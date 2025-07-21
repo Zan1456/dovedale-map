@@ -212,13 +212,50 @@ const updateTooltip = (player, mouseX, mouseY) => {
   const playerElement = elements.tooltip.querySelector('#player div');
   if (playerElement) playerElement.textContent = name;
 
-  const sections = ['destination', 'train-name', 'headcode', 'train-class'].map(id => 
-    elements.tooltip.querySelector(`#${id}`)
-  );
-  
-  sections.forEach(section => {
-    if (section) section.style.display = 'none';
-  });
+  // Show train data if available
+  const destinationSection = elements.tooltip.querySelector('#destination');
+  const trainNameSection = elements.tooltip.querySelector('#train-name');
+  const headcodeSection = elements.tooltip.querySelector('#headcode');
+  const trainClassSection = elements.tooltip.querySelector('#train-class');
+
+  if (player.trainData && Array.isArray(player.trainData)) {
+    const [destination, trainClass, headcode, trainType] = player.trainData;
+
+    // Show destination
+    if (destination && destination !== "Unknown" && destinationSection) {
+      const destDiv = destinationSection.querySelector('div');
+      if (destDiv) destDiv.textContent = destination;
+      destinationSection.style.display = 'flex';
+    } else if (destinationSection) {
+      destinationSection.style.display = 'none';
+    }
+
+    // Show train class
+    if (trainClass && trainClass !== "Unknown" && trainClassSection) {
+      const classDiv = trainClassSection.querySelector('div');
+      if (classDiv) classDiv.textContent = trainClass;
+      trainClassSection.style.display = 'flex';
+    } else if (trainClassSection) {
+      trainClassSection.style.display = 'none';
+    }
+
+    // Show headcode if not empty
+    if (headcode && headcode !== "----" && headcode !== "" && headcodeSection) {
+      const headDiv = headcodeSection.querySelector('div');
+      if (headDiv) headDiv.textContent = headcode;
+      headcodeSection.style.display = 'flex';
+    } else if (headcodeSection) {
+      headcodeSection.style.display = 'none';
+    }
+
+    // Hide train name section (not used in this data structure)
+    if (trainNameSection) trainNameSection.style.display = 'none';
+  } else {
+    // Hide all train data sections if no train data
+    [destinationSection, trainNameSection, headcodeSection, trainClassSection].forEach(section => {
+      if (section) section.style.display = 'none';
+    });
+  }
 
   const playerSection = elements.tooltip.querySelector('#player');
   if (playerSection) playerSection.style.display = 'flex';

@@ -87,8 +87,6 @@ app.post('/positions', (req, res) => {
 
 	delete data.token;
 	
-	console.dir(data, { depth: null });
-
 	webhooks = webhooks.filter((ws) => {
 		if (ws.readyState === ws.OPEN) {
 			try {
