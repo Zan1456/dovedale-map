@@ -86,7 +86,8 @@ app.post('/positions', (req, res) => {
 	}
 
 	delete data.token;
-	console.log(JSON.stringify(data.players.trainData));
+	
+	console.dir(data, { depth: null });
 
 	webhooks = webhooks.filter((ws) => {
 		if (ws.readyState === ws.OPEN) {
