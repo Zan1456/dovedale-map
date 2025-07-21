@@ -16,7 +16,7 @@ let touchStartX, touchStartY;
 let lastTouchDistance = 0;
 let ws = null;
 let reconnectAttempts = 0;
-const maxReconnectAttempts = 5;
+const maxReconnectAttempts = 1;
 let reconnectTimeout = null;
 
 const TOP_LEFT = { x: -23818, y: -10426 };
@@ -68,43 +68,6 @@ for (let row = 0; row < MAP_CONFIG.rows; row++) {
 
 trackTransforms();
 initializeMap();
-
-function showConnectionPopup() {
-	connectionPopup.classList.remove('hidden');
-	updateReconnectButton();
-}
-
-function hideConnectionPopup() {
-	connectionPopup.classList.add('hidden');
-	reconnectBtn.classList.remove('connecting');
-	reconnectBtn.disabled = false;
-	reconnectBtn.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-      <path d="M21 3v5h-5"/>
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-      <path d="M3 21v-5h5"/>
-    </svg>
-    Reconnect
-  `;
-}
-
-function createWebSocket() {
-	if (reconnectTimeout) {
-		clearTimeout(reconnectTimeout);
-		reconnectTimeout = null;
-	}
-
-	ws = new WebSocket(`wss://${window.location.host}/ws`);
-
-	ws.addEventListener('open', () => {
-		console.log('WebSocket connected');
-		reconnectAttempts = 0;
-		hideConnectionPopup();
-	});
-
-	return ws;
-}
 
 function getCanvasCoordinates(event) {
 	const rect = canvas.getBoundingClientRect();
@@ -175,38 +138,10 @@ canvas.addEventListener('mousemove', (event) => {
 
 function updateReconnectButton() {
 	if (reconnectAttempts >= maxReconnectAttempts) {
-		reconnectBtn.innerHTML = 'Max attempts reached';
-		reconnectBtn.disabled = true;
+		reconnectBtn.innerHTML = 'Reconnect';
+		reconnectBtn.disabled = false;
 		reconnectBtn.classList.remove('connecting');
 	}
-}
-
-function attemptReconnect() {
-	if (reconnectAttempts >= maxReconnectAttempts) {
-		updateReconnectButton();
-		return;
-	}
-
-	reconnectAttempts++;
-	console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
-
-	reconnectBtn.classList.add('connecting');
-	reconnectBtn.disabled = true;
-	reconnectBtn.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-      <path d="M21 3v5h-5"/>
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-      <path d="M3 21v-5h5"/>
-    </svg>
-    Connecting... (${reconnectAttempts}/${maxReconnectAttempts})
-  `;
-
-	if (ws && ws.readyState !== WebSocket.CLOSED) {
-		ws.close();
-	}
-
-	createWebSocket();
 }
 
 reconnectBtn.addEventListener('click', () => {
@@ -317,12 +252,13 @@ function createWebSocket() {
   });
 
   ws.addEventListener('error', (err) => {
-    console.error('WebSocket error:', err);
+    console.warn('WebSocket error:', err);
+	attemptReconnect();
   });
 
   ws.addEventListener('close', (event) => {
     console.warn('WebSocket closed:', event.code, event.reason);
-    showConnectionPopup();
+    showConnectionPopup();	
     
     if (reconnectAttempts < maxReconnectAttempts) {
       const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
@@ -355,14 +291,6 @@ function hideConnectionPopup() {
   `;
 }
 
-function updateReconnectButton() {
-  if (reconnectAttempts >= maxReconnectAttempts) {
-    reconnectBtn.innerHTML = 'Max attempts reached';
-    reconnectBtn.disabled = true;
-    reconnectBtn.classList.remove('connecting');
-  }
-}
-
 function attemptReconnect() {
   if (reconnectAttempts >= maxReconnectAttempts) {
     updateReconnectButton();
@@ -370,7 +298,7 @@ function attemptReconnect() {
   }
 
   reconnectAttempts++;
-  console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
+  //console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
   
   reconnectBtn.classList.add('connecting');
   reconnectBtn.disabled = true;
@@ -381,7 +309,7 @@ function attemptReconnect() {
       <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
       <path d="M3 21v-5h5"/>
     </svg>
-    Connecting... (${reconnectAttempts}/${maxReconnectAttempts})
+    Connecting...
   `;
 
   if (ws && ws.readyState !== WebSocket.CLOSED) {
@@ -631,7 +559,7 @@ function updateTooltip(player, mouseX, mouseY) {
 			const serverDiv = serverSection.querySelector('div');
 			if (serverDiv) {
 				const serverName = currentServer.length > 6 ? currentServer.substring(currentServer.length - 6) : currentServer;
-				serverDiv.textContent = serverName;
+				serverDiv.textContent = player.serverName;
 			}
 			serverSection.style.display = 'flex';
 		} else if (serverSection) {
