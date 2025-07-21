@@ -650,7 +650,7 @@ function updateTooltip(player, mouseX, mouseY) {
 		}
 
 		// Show server info
-		if (serverSection && currentServer !== 'all') {
+		if (serverSection && currentServer === 'all') {
 			const serverDiv = serverSection.querySelector('div');
 			if (serverDiv) {
 				const serverName = currentServer.length > 6 ? currentServer.substring(currentServer.length - 6) : currentServer;
