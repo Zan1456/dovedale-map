@@ -365,30 +365,40 @@ const createWebSocket = () => {
 };
 
 const showConnectionPopup = () => {
-  elements.connectionPopup.classList.remove('hidden');
+  elements.connectionPopup.classList.remove('opacity-0', '-translate-y-5', 'pointer-events-none');
+  elements.connectionPopup.classList.add('opacity-100', 'translate-y-0');
   updateReconnectButton();
 };
 
 const hideConnectionPopup = () => {
-  elements.connectionPopup.classList.add('hidden');
-  elements.reconnectBtn.classList.remove('connecting');
+  elements.connectionPopup.classList.add('opacity-0', '-translate-y-5', 'pointer-events-none');
+  elements.connectionPopup.classList.remove('opacity-100', 'translate-y-0');
+  
+  // Reset reconnect button to normal state
   elements.reconnectBtn.disabled = false;
+  elements.reconnectBtn.classList.remove('bg-zinc-600');
+  elements.reconnectBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+  
+  const reconnectIcon = document.getElementById('reconnectIcon');
+  if (reconnectIcon) {
+    reconnectIcon.classList.remove('animate-spin');
+  }
+  
   elements.reconnectBtn.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-      <path d="M21 3v5h-5"/>
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-      <path d="M3 21v-5h5"/>
-    </svg>
+    <i id="reconnectIcon" class="material-symbols-outlined text-4">refresh</i>
     Reconnect
   `;
 };
 
 const updateReconnectButton = () => {
   if (state.reconnectAttempts >= state.maxReconnectAttempts) {
-    elements.reconnectBtn.innerHTML = 'Reconnect';
+    elements.reconnectBtn.innerHTML = `
+      <i id="reconnectIcon" class="material-symbols-outlined text-4">refresh</i>
+      Reconnect
+    `;
     elements.reconnectBtn.disabled = false;
-    elements.reconnectBtn.classList.remove('connecting');
+    elements.reconnectBtn.classList.remove('bg-zinc-600');
+    elements.reconnectBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
   }
 };
 
@@ -397,25 +407,22 @@ const attemptReconnect = () => {
     updateReconnectButton();
     return;
   }
-
+  
   state.reconnectAttempts++;
-
-  elements.reconnectBtn.classList.add('connecting');
+  
+  // Set connecting state
   elements.reconnectBtn.disabled = true;
+  elements.reconnectBtn.classList.add('bg-zinc-600');
+  elements.reconnectBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+  
   elements.reconnectBtn.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-      <path d="M21 3v5h-5"/>
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-      <path d="M3 21v-5h5"/>
-    </svg>
+    <i id="reconnectIcon" class="material-symbols-outlined text-4 animate-spin">refresh</i>
     Connecting...
   `;
-
+  
   if (state.ws && state.ws.readyState !== WebSocket.CLOSED) {
     state.ws.close();
   }
-
   createWebSocket();
 };
 
