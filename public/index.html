@@ -7,7 +7,7 @@
 	<title>Dovedale Live Map</title>
 	<script src="https://cdn.tailwindcss.com/3.4.16"></script>
 	<link rel="stylesheet"
-		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&family=Inter:opsz,wght@14..32,200..700" />
 	<meta name="description" content="A live map of Dovedale Railway, showing players with a server selector." />
 	<meta name="keywords" content="dovedale, railway, dovedale railway, dovedale map, live map, dovedale railway map" />
 	<link rel="canonical" href="https://map.dovedale.wiki/" />
@@ -22,9 +22,15 @@
 	<meta name="twitter:description"
 		content="A live map of Dovedale Railway, showing players across all or a specific server." />
 	<meta name="twitter:image" content="https://map.dovedale.wiki/images/map-small.png" />
+	<style>
+		@font-face {
+			font-family: 'Inter';
+			src: local('Inter'), url(/Inter.ttf) format('ttf');
+		}
+	</style>
 </head>
 
-<body class="bg-zinc-950 text-white text-xl overflow-hidden h-full w-full fixed">
+<body class="bg-zinc-950 text-white text-xl overflow-hidden h-full w-full fixed font-[Inter]">
 
 	<div id="connectionPopup" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 bg-black/90 border border-zinc-600 rounded-lg p-4 backdrop-blur-md shadow-2xl max-w-xs transition-all duration-300 opacity-0 -translate-y-5 pointer-events-none">
 		<div class="flex items-center gap-3">
