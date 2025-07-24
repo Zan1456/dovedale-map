@@ -3,3 +3,4 @@ node_modules
 bun.lockb
 rorender
 **/.DS_Store
+bun.lock
