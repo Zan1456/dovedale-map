@@ -18,6 +18,77 @@ const MAP_CONFIG = {
 	totalHeight: 13724,
 };
 
+const AREA_MARKERS = {
+	"Gleethrop End": {
+		x: 1274,
+		y: 3563,
+	},
+	Groenewoud: {
+		x: -14658,
+		y: -3762,
+	},
+	"Dovedale East": {
+		x: 1231,
+		y: 534,
+	},
+	"Fanory Mill": {
+		x: -16821,
+		y: -3954,
+	},
+	Mazewood: {
+		x: -4650,
+		y: 5798,
+	},
+	Conby: {
+		x: -11688,
+		y: -3270,
+	},
+	"Codsall Castle": {
+		x: 9991,
+		y: 5236,
+	},
+	Masonfield: {
+		x: 10667,
+		y: -881,
+	},
+	"Benyhone Loop": {
+		x: -19532,
+		y: -5201,
+	},
+	Perthtyne: {
+		x: -490,
+		y: 5268,
+	},
+	Ashburn: {
+		x: -22012,
+		y: -6729,
+	},
+	"Cosdale Harbour": {
+		x: 4325,
+		y: -2518,
+	},
+	"Glassbury Junction": {
+		x: 11592,
+		y: 8663,
+	},
+	"Dovedale Central": {
+		x: 3157,
+		y: 805,
+	},
+	"Wington Mount": {
+		x: 2922,
+		y: -2830,
+	},
+	"Marigot Crossing": {
+		x: 7692,
+		y: 2205,
+	},
+	Satus: {
+		x: -7485,
+		y: -3055,
+	},
+};
+
 const COLORS = [
 	"#FD2943",
 	"#01A2FF",
@@ -596,6 +667,8 @@ const drawScene = () => {
 	const playersToShow = state.getAllPlayers();
 	elements.players.innerHTML = `Players: ${playersToShow.length}`;
 
+	const dotScaleFactor = Math.max(0.3, 1 / Math.pow(state.currentScale, 0.4));
+
 	playersToShow.forEach((player) => {
 		const worldX = player.position?.x ?? 0;
 		const worldY = player.position?.y ?? 0;
@@ -603,10 +676,8 @@ const drawScene = () => {
 
 		const canvasPos = worldToCanvas(worldX, worldY);
 		const isHovered = state.hoveredPlayer?.username === name;
-
 		const baseRadius = isHovered ? 2.5 : 2;
-		const scaleFactor = Math.max(0.3, 1 / Math.pow(state.currentScale, 0.4));
-		const radius = baseRadius * scaleFactor;
+		const radius = baseRadius * dotScaleFactor;
 
 		context.fillStyle = getPlayerColor(name);
 		context.beginPath();
@@ -616,6 +687,20 @@ const drawScene = () => {
 		context.strokeStyle = isHovered ? "white" : "black";
 		context.lineWidth = Math.max((isHovered ? 0.7 : 0.4) * scaleFactor, 0.25);
 		context.stroke();
+	});
+
+	if (state.currentScale > 300) return;
+	const markerFontSize = Math.max(0.2, 10 / Math.pow(state.currentScale, 0.3));
+	Object.entries(AREA_MARKERS).forEach(([name, { x, y }]) => {
+		const canvasPos = worldToCanvas(x, y);
+		context.fillStyle = "white";
+		context.font = markerFontSize + "px Inter";
+		const textDimensions = context.measureText(name);
+		context.fillText(
+			name,
+			canvasPos.x - textDimensions.width / 2,
+			canvasPos.y,
+		);
 	});
 };
 
