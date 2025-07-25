@@ -634,6 +634,7 @@ const drawScene = () => {
 	const scaledChunkWidth = chunkWidth * scaleFactor;
 	const scaledChunkHeight = chunkHeight * scaleFactor;
 
+	context.imageSmoothingEnabled = false;
 	// Draw map tiles
 	for (let row = 0; row < MAP_CONFIG.rows; row++) {
 		for (let col = 0; col < MAP_CONFIG.cols; col++) {
@@ -642,7 +643,7 @@ const drawScene = () => {
 				const destX = offsetX + col * scaledChunkWidth;
 				const destY = offsetY + row * scaledChunkHeight;
 
-				const overlap = 0.5;
+				const overlap = Math.max(0.5, 2 / state.currentScale);
 				const drawWidth =
 					scaledChunkWidth + (col < MAP_CONFIG.cols - 1 ? overlap : 0);
 				const drawHeight =
@@ -662,6 +663,7 @@ const drawScene = () => {
 			}
 		}
 	}
+	context.imageSmoothingEnabled = true;
 
 	// Draw players
 	const playersToShow = state.getAllPlayers();
