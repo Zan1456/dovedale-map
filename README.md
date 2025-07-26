@@ -4,6 +4,7 @@ Hosted at [map.dovedale.wiki](https://map.dovedale.wiki), this project aims to p
 
 Uses Express to host a web server, with Bun as the preferred package manager.
 
+Feel free to have a look through the code or contribute - just make sure you follow general style and document PRs and code changes properly.
 
 ## Development
 
