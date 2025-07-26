@@ -15,5 +15,8 @@ bun dev
 ## Production
 
 ```sh
-bun start
+bun install
+pm2 save
+pm2 startup
+pm2 start pm2.config.js
 ```
