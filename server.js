@@ -13,20 +13,7 @@ app.use(bodyParser.json());
 
 let webhooks = [];
 
-async function postToWebhook(message) {
-	console.log(`Posting to webhook: ${message}`);
-	try {
-		await axios.post("https://discord.com/api/webhooks/1394424580789108908/kf0Fta-QfGa22sWn-AeFHJW9sFQQT2R4Ay2xrnYgHZBl8bgtLIh6VKckCuxvQqHQmfT7", {
-			content: message // Or whatever payload your webhook expects
-		});
-		console.log('Message sent to webhook');
-	} catch (error) {
-		console.error('Error sending message to webhook:', error.message);
-	}
-}
-
 async function changeLever(box, lever) {
-	postToWebhook(`Changing lever ${lever} in box ${box}`);
 	const response = await axios.post(
 		'https://apis.roblox.com/messaging-service/v1/universes/4252370517/topics/SignalControl',
 		{
@@ -45,24 +32,19 @@ async function changeLever(box, lever) {
 			},
 		}
 	);
-	postToWebhook(`Response status code: ${response.status}`);
 }
 
 
-// Endpoint to register WebSocket clients
 app.ws('/ws', (ws, req) => {
 	webhooks.push(ws);
-	//postToWebhook('New WebSocket client connected');
 
 	ws.on('message', async (message) => {
 		message = JSON.parse(message);
 		if (message.key === 'jaidenIsREALLYOldHonestly' && message.box && message.lever) {
-			// await changeLever(message.box, message.lever);
 		}
 	});
 
 	ws.on('close', () => {
-		//postToWebhook('WebSocket client disconnected');
 		webhooks = webhooks.filter((webhook) => webhook !== ws);
 	});
 });
@@ -93,7 +75,6 @@ app.post('/positions', (req, res) => {
 				ws.send(JSON.stringify(data));
 				return true;
 			} catch (err) {
-				postToWebhook('Error sending to WebSocket client:', err);
 			}
 		}
 		return false;
@@ -103,5 +84,4 @@ app.post('/positions', (req, res) => {
 });
 
 app.listen(PORT, () => {
-	postToWebhook(`Server is running`);
 });
