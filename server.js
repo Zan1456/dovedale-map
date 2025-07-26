@@ -35,25 +35,6 @@ async function changeLever(box, lever) {
 }
 
 
-app.ws('/ws', (ws, req) => {
-	webhooks.push(ws);
-
-	ws.on('message', async (message) => {
-		message = JSON.parse(message);
-		if (message.key === 'jaidenIsREALLYOldHonestly' && message.box && message.lever) {
-		}
-	});
-
-	ws.on('close', () => {
-		webhooks = webhooks.filter((webhook) => webhook !== ws);
-	});
-});
-
-app.get('/key', (req, res) => {
-	res.cookie('key', req.query.key, { maxAge: 900000 });
-	res.status(200).send("Set key cookie to the query parameter (not saying it's right)");
-});
-
 app.get('/status', (req, res) => {
 	res.status(200).send('200 OK');
 });
