@@ -8,13 +8,14 @@ Feel free to have a look through the code or contribute - just make sure you fol
 
 ## Development
 
-```sh
+```
+bun install
 bun dev
 ```
 
 ## Production
 
-```sh
+```
 bun install
 bun install pm2 -g
 pm2 save
