@@ -2,41 +2,32 @@ require('dotenv').config();
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const axios = require('axios');
 const app = express();
-const expressWs = require('express-ws')(app);
+require('express-ws')(app);
 const PORT = process.env.PORT || 3000;
-const ROBLOX_SECRET = process.env.ROBLOX_OTHER_KEY || "TEST";
+const ROBLOX_SECRET = process.env.ROBLOX_OTHER_KEY || 'TEST';
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
 let webhooks = [];
 
-async function changeLever(box, lever) {
-	const response = await axios.post(
-		'https://apis.roblox.com/messaging-service/v1/universes/4252370517/topics/SignalControl',
-		{
-			message: JSON.stringify({
-				message: {
-					box: box,
-					number: lever,
-				},
-				timestamp: Date.now(),
-			}),
-		},
-		{
-			headers: {
-				'x-api-key': process.env.ROBLOX_API_KEY,
-				'Content-Type': 'application/json',
-			},
-		}
-	);
-}
-
-
 app.get('/status', (req, res) => {
 	res.status(200).send('200 OK');
+});
+
+app.ws('/ws', (ws, req) => {
+	console.log('WebSocket client connected');
+	webhooks.push(ws);
+
+	ws.on('close', () => {
+		console.log('WebSocket client disconnected');
+		// Remove from webhooks array on disconnect
+		const index = webhooks.indexOf(ws);
+		if (index > -1) {
+			webhooks.splice(index, 1);
+		}
+	});
 });
 
 app.post('/positions', (req, res) => {
@@ -49,14 +40,13 @@ app.post('/positions', (req, res) => {
 	}
 
 	delete data.token;
-	
+
 	webhooks = webhooks.filter((ws) => {
 		if (ws.readyState === ws.OPEN) {
 			try {
 				ws.send(JSON.stringify(data));
 				return true;
-			} catch (err) {
-			}
+			} catch (err) { }
 		}
 		return false;
 	});
@@ -64,5 +54,4 @@ app.post('/positions', (req, res) => {
 	res.status(200).send();
 });
 
-app.listen(PORT, () => {
-});
+app.listen(PORT, () => { });
