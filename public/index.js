@@ -752,6 +752,7 @@ const handleMouseEvents = () => {
 		const mousePos = getCanvasCoordinates(event);
 		state.dragStart = context.transformedPoint(mousePos.x, mousePos.y);
 		state.isDragging = true;
+		return false
 	});
 
 	canvas.addEventListener("mousemove", (event) => {
