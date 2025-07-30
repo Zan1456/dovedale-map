@@ -530,6 +530,11 @@ const attemptReconnect = () => {
 		return;
 	}
 
+	if (state.reconnectTimeout) {
+        clearTimeout(state.reconnectTimeout);
+        state.reconnectTimeout = null;
+    }
+	
 	state.reconnectAttempts++;
 
 	// Set connecting state
