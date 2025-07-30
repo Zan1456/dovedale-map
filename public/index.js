@@ -123,7 +123,7 @@ class AppState {
 		this.lastTouchDistance = 0;
 		this.ws = null;
 		this.reconnectAttempts = 0;
-		this.maxReconnectAttempts = 1;
+		this.maxReconnectAttempts = 3;
 		this.reconnectTimeout = null;
 		this.mapImages = [];
 		this.loadedImages = 0;
