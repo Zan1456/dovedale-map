@@ -135,14 +135,6 @@ class AppState {
 			? Object.values(this.serverData).flat()
 			: this.serverData[this.currentServer] || [];
 	}
-
-	resetReconnection() {
-		this.reconnectAttempts = 0;
-		if (this.reconnectTimeout) {
-			clearTimeout(this.reconnectTimeout);
-			this.reconnectTimeout = null;
-		}
-	}
 }
 
 const state = new AppState();
@@ -441,12 +433,15 @@ const handleWindowResize = () => {
 };
 
 const createWebSocket = () => {
-	state.resetReconnection();
+	if (state.reconnectTimeout) {
+		clearTimeout(state.reconnectTimeout);
+		state.reconnectTimeout = null;
+	}
 
 	if (state.ws) {
-        state.ws.close();
-        state.ws = null;
-    }
+		state.ws.close();
+		state.ws = null;
+	}
 	
 	state.ws = new WebSocket(`wss://${window.location.host}/ws`);
 
@@ -472,19 +467,17 @@ const createWebSocket = () => {
 
 	state.ws.addEventListener("error", (err) => {
 		console.warn("WebSocket error:", err);
-		attemptReconnect();
 	});
 
 	state.ws.addEventListener("close", (event) => {
 		console.warn("WebSocket closed:", event.code, event.reason);
 		showConnectionPopup();
 
-		if (state.reconnectAttempts < state.maxReconnectAttempts) {
-			const delay = Math.min(
-				1000 * Math.pow(2, state.reconnectAttempts),
-				30000,
-			);
-			state.reconnectTimeout = setTimeout(attemptReconnect, delay);
+		if (state.reconnectAttempts < state.maxReconnectAttempts && !state.reconnectTimeout) {
+			state.reconnectTimeout = setTimeout(() => {
+				state.reconnectTimeout = null;
+				attemptReconnect();
+			}, 1000);
 		}
 	});
 
@@ -538,35 +531,44 @@ const updateReconnectButton = () => {
 };
 
 const attemptReconnect = () => {
+	// Prevent multiple simultaneous reconnection attempts
+	if (state.reconnectTimeout) {
+		return;
+	}
+
 	if (state.reconnectAttempts >= state.maxReconnectAttempts) {
 		updateReconnectButton();
 		return;
 	}
 
-	if (state.reconnectTimeout) {
-        clearTimeout(state.reconnectTimeout);
-        state.reconnectTimeout = null;
-    }
-
 	state.reconnectAttempts++;
 
-	// Set connecting state
+	// Update UI to show connecting state
 	elements.reconnectBtn.disabled = true;
 	elements.reconnectBtn.classList.add("bg-zinc-600");
 	elements.reconnectBtn.classList.remove("bg-blue-600", "hover:bg-blue-700");
 
 	elements.reconnectBtn.innerHTML = `
-    <i id="reconnectIcon" class="material-symbols-outlined text-4 animate-spin">refresh</i>
-    Connecting...
-  `;
+		<i id="reconnectIcon" class="material-symbols-outlined text-4 animate-spin">refresh</i>
+		Connecting...
+	`;
 
+	// Close existing WebSocket before creating new one
 	if (state.ws && state.ws.readyState !== WebSocket.CLOSED) {
 		state.ws.close();
 	}
+	
 	createWebSocket();
 };
 
-// Server List Management
+const resetReconnection = () => {
+	state.reconnectAttempts = 0;
+	if (state.reconnectTimeout) {
+		clearTimeout(state.reconnectTimeout);
+		state.reconnectTimeout = null;
+	}
+};
+
 const updateServerList = (data) => {
 	const currentServers = Object.keys(state.serverData);
 	const existingServers = Array.from(elements.serverSelect.options)
@@ -906,6 +908,11 @@ elements.serverSelect.addEventListener("change", () => {
 });
 
 elements.reconnectBtn.addEventListener("click", () => {
+	if (state.reconnectTimeout) {
+		clearTimeout(state.reconnectTimeout);
+		state.reconnectTimeout = null;
+	}
+	
 	state.reconnectAttempts = 0;
 	attemptReconnect();
 });
