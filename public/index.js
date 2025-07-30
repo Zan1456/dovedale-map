@@ -11,6 +11,8 @@ const WORLD_CENTER = {
 	y: (WORLD_BOUNDS.TOP_LEFT.y + WORLD_BOUNDS.BOTTOM_RIGHT.y) / 2,
 };
 
+const STALE_SERVER_TIMEOUT = 30000;
+
 const MAP_CONFIG = {
 	rows: 1,
 	cols: 16,
@@ -128,12 +130,16 @@ class AppState {
 		this.mapImages = [];
 		this.loadedImages = 0;
 		this.totalImages = MAP_CONFIG.rows * MAP_CONFIG.cols;
+		this.staleCheckInterval = null; // ADD THIS LINE
 	}
 
 	getAllPlayers() {
-		return this.currentServer === "all"
-			? Object.values(this.serverData).flat()
-			: this.serverData[this.currentServer] || [];
+		if (this.currentServer === "all") {
+			return Object.values(this.serverData)
+				.map(serverInfo => serverInfo.players || [])
+				.flat();
+		}
+		return this.serverData[this.currentServer]?.players || [];
 	}
 }
 
@@ -354,8 +360,8 @@ const updateTooltip = (player, mouseX, mouseY) => {
 		const serverDiv = serverSection.querySelector("div");
 		if (serverDiv) {
 			let serverName = "Unknown";
-			for (const [jobId, players] of Object.entries(state.serverData)) {
-				if (players.includes(player)) {
+			for (const [jobId, serverInfo] of Object.entries(state.serverData)) {
+				if (serverInfo.players && serverInfo.players.includes(player)) {
 					serverName =
 						jobId.length > 6 ? jobId.substring(jobId.length - 6) : jobId;
 					break;
@@ -432,6 +438,40 @@ const handleWindowResize = () => {
 	drawScene();
 };
 
+const cleanupStaleServers = () => {
+	const now = Date.now();
+	let hasStaleServers = false;
+	
+	for (const [jobId, serverInfo] of Object.entries(state.serverData)) {
+		if (now - serverInfo.lastUpdate > STALE_SERVER_TIMEOUT) {
+			console.log(`Removing stale server: ${jobId}`);
+			delete state.serverData[jobId];
+			hasStaleServers = true;
+		}
+	}
+	
+	if (hasStaleServers) {
+		updateServerList();
+		drawScene();
+	}
+};
+
+const startStaleServerCleanup = () => {
+	if (state.staleCheckInterval) {
+		clearInterval(state.staleCheckInterval);
+	}
+	console.log("Starting stale server cleanup loop");
+	state.staleCheckInterval = setInterval(cleanupStaleServers, 5000); // every 5s
+};
+
+const stopStaleServerCleanup = () => {
+	if (state.staleCheckInterval) {
+		console.log("Stopping stale server cleanup loop");
+		clearInterval(state.staleCheckInterval);
+		state.staleCheckInterval = null;
+	}
+};
+
 const createWebSocket = () => {
 	if (state.reconnectTimeout) {
 		clearTimeout(state.reconnectTimeout);
@@ -449,6 +489,7 @@ const createWebSocket = () => {
 		console.log("WebSocket connected");
 		state.reconnectAttempts = 0;
 		hideConnectionPopup();
+		startStaleServerCleanup();
 	});
 
 	state.ws.addEventListener("message", (event) => {
@@ -457,7 +498,14 @@ const createWebSocket = () => {
 			const jobId = data.jobId;
 			const playersArray = Array.isArray(data.players) ? data.players : [];
 
-			state.serverData[jobId] = playersArray;
+			if (playersArray.length === 0 && data.serverShutdown) {
+				delete state.serverData[jobId];
+			} else {
+				state.serverData[jobId] = {
+					players: playersArray,
+					lastUpdate: Date.now() // UPDATE TIMESTAMP
+				};
+			}
 			updateServerList(data);
 			drawScene();
 		} catch (err) {
@@ -472,6 +520,7 @@ const createWebSocket = () => {
 	state.ws.addEventListener("close", (event) => {
 		console.warn("WebSocket closed:", event.code, event.reason);
 		showConnectionPopup();
+		stopStaleServerCleanup(); // STOP CLEANUP WHEN DISCONNECTED
 
 		if (state.reconnectAttempts < state.maxReconnectAttempts && !state.reconnectTimeout) {
 			state.reconnectTimeout = setTimeout(() => {
@@ -569,68 +618,64 @@ const resetReconnection = () => {
 	}
 };
 
-const updateServerList = (data) => {
+const updateServerList = (data = null) => {
 	const currentServers = Object.keys(state.serverData);
 	const existingServers = Array.from(elements.serverSelect.options)
 		.slice(1)
 		.map((opt) => opt.value);
 
-	const playersArray = data?.players
-		? Array.isArray(data.players)
-			? data.players
-			: []
-		: [];
-
-	// Normalize train data
-	playersArray.forEach((player) => {
-		if (player.trainData && !Array.isArray(player.trainData)) {
-			const td = player.trainData;
-			if (typeof td === "object" && td !== null) {
-				player.trainData = [
-					td.destination || "Unknown",
-					td.class || "Unknown",
-					td.headcode || "----",
-					td.headcodeClass || "",
-				];
-			} else {
-				player.trainData = null;
+	// Only process player data if data is provided
+	if (data?.players) {
+		const playersArray = Array.isArray(data.players) ? data.players : [];
+		
+		// Normalize train data
+		playersArray.forEach((player) => {
+			if (player.trainData && !Array.isArray(player.trainData)) {
+				const td = player.trainData;
+				if (typeof td === "object" && td !== null) {
+					player.trainData = [
+						td.destination || "Unknown",
+						td.class || "Unknown", 
+						td.headcode || "----",
+						td.headcodeClass || "",
+					];
+				} else {
+					player.trainData = null;
+				}
 			}
-		}
+		});
+	}
+
+	// Always rebuild the server list to ensure player counts are current
+	const selectedValue = elements.serverSelect.value;
+	const totalPlayersCount = Object.values(state.serverData).reduce(
+		(count, serverInfo) =>
+			count + (Array.isArray(serverInfo.players) ? serverInfo.players.length : 0),
+		0,
+	);
+
+	let html = `<option value="all">All Servers (${totalPlayersCount} players)</option>`;
+
+	currentServers.forEach((jobId) => {
+		const serverName =
+			jobId.length > 6
+				? `Server ${jobId.substring(jobId.length - 6)}`
+				: `Server ${jobId}`;
+		const playerCount = Array.isArray(state.serverData[jobId]?.players)
+			? state.serverData[jobId].players.length
+			: 0;
+		const selected = selectedValue === jobId ? " selected" : "";
+		html += `<option value="${jobId}"${selected}>${serverName} (${playerCount} players)</option>`;
 	});
 
-	if (
-		currentServers.length !== existingServers.length ||
-		!currentServers.every((server) => existingServers.includes(server))
-	) {
-		const selectedValue = elements.serverSelect.value;
-		const totalPlayersCount = Object.values(state.serverData).reduce(
-			(count, playersArr) =>
-				count + (Array.isArray(playersArr) ? playersArr.length : 0),
-			0,
-		);
+	elements.serverSelect.innerHTML = html;
 
-		let html = `<option value="all">All Servers (${totalPlayersCount} players)</option>`;
-
-		currentServers.forEach((jobId) => {
-			const serverName =
-				jobId.length > 6
-					? `Server ${jobId.substring(jobId.length - 6)}`
-					: `Server ${jobId}`;
-			const playerCount = Array.isArray(state.serverData[jobId])
-				? state.serverData[jobId].length
-				: 0;
-			const selected = selectedValue === jobId ? " selected" : "";
-			html += `<option value="${jobId}"${selected}>${serverName} (${playerCount} players)</option>`;
-		});
-
-		elements.serverSelect.innerHTML = html;
-
-		if (selectedValue !== "all" && !currentServers.includes(selectedValue)) {
-			elements.serverSelect.value = "all";
-			state.currentServer = "all";
-		} else {
-			elements.serverSelect.value = selectedValue;
-		}
+	// Handle server selection if current server no longer exists
+	if (selectedValue !== "all" && !currentServers.includes(selectedValue)) {
+		elements.serverSelect.value = "all";
+		state.currentServer = "all";
+	} else {
+		elements.serverSelect.value = selectedValue;
 	}
 };
 
