@@ -422,7 +422,16 @@ const updateTooltip = (player, mouseX, mouseY) => {
 	elements.tooltip.style.visibility = "visible";
 };
 
-// WebSocket Management
+const handleWindowResize = () => {
+	const currentTransform = context.getTransform();
+	
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	context.setTransform(currentTransform);
+	
+	drawScene();
+};
+
 const createWebSocket = () => {
 	state.resetReconnection();
 
@@ -889,6 +898,7 @@ const init = () => {
 	loadMapImages();
 	handleMouseEvents();
 	handleTouchEvents();
+	window.addEventListener('resize', handleWindowResize);
 
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
