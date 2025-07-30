@@ -422,12 +422,20 @@ const updateTooltip = (player, mouseX, mouseY) => {
 	elements.tooltip.style.visibility = "visible";
 };
 
+let resizeTimeout = null;
 const handleWindowResize = () => {
-	const currentTransform = context.getTransform();
-	
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
-	context.setTransform(currentTransform);
+
+	if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+    }
+
+    resizeTimeout = setTimeout(() => {
+        const currentTransform = context.getTransform();
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        context.setTransform(currentTransform);
+        drawScene();
+    }, 16);
 	
 	drawScene();
 };
@@ -435,6 +443,11 @@ const handleWindowResize = () => {
 const createWebSocket = () => {
 	state.resetReconnection();
 
+	if (state.ws) {
+        state.ws.close();
+        state.ws = null;
+    }
+	
 	state.ws = new WebSocket(`wss://${window.location.host}/ws`);
 
 	state.ws.addEventListener("open", () => {
@@ -534,7 +547,7 @@ const attemptReconnect = () => {
         clearTimeout(state.reconnectTimeout);
         state.reconnectTimeout = null;
     }
-	
+
 	state.reconnectAttempts++;
 
 	// Set connecting state
