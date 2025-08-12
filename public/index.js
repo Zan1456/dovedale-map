@@ -665,7 +665,7 @@ const updateServerList = (data = null) => {
 			? state.serverData[jobId].players.length
 			: 0;
 		const selected = selectedValue === jobId ? " selected" : "";
-		html += `<option value="${jobId}"${selected}>${serverName} (${playerCount}/50 players)</option>`;
+		html += `<option value="${jobId}"${selected}>${serverName} (${playerCount} / 50 players)</option>`;
 	});
 
 	elements.serverSelect.innerHTML = html;
