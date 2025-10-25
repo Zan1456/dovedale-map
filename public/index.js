@@ -198,6 +198,18 @@ const worldToCanvas = (worldX, worldY) => {
 	};
 };
 
+function drawRoundedRect(context, x, y, width, height, radius) {
+  if (width < 2 * radius) radius = width / 2;
+  if (height < 2 * radius) radius = height / 2;
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.arcTo(x + width, y, x + width, y + height, radius);
+  context.arcTo(x + width, y + height, x, y + height, radius);
+  context.arcTo(x, y + height, x, y, radius);
+  context.arcTo(x, y, x + width, y, radius);
+  context.closePath();
+}
+
 // Transform Tracking
 const trackTransforms = () => {
 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -768,15 +780,34 @@ const drawScene = () => {
 	if (state.currentScale > 300) return;
 	const markerFontSize = Math.max(0.2, 10 / Math.pow(state.currentScale, 0.3));
 	Object.entries(AREA_MARKERS).forEach(([name, { x, y }]) => {
-		const canvasPos = worldToCanvas(x, y);
-		context.fillStyle = "white";
-		context.font = markerFontSize + "px Inter";
-		const textDimensions = context.measureText(name);
-		context.fillText(
-			name,
-			canvasPos.x - textDimensions.width / 2,
-			canvasPos.y,
-		);
+		const pos = worldToCanvas(x, y);
+		context.font = `${markerFontSize}px Inter`;
+
+		const metrics = context.measureText(name);
+		const textWidth = metrics.width;
+		const ascent = metrics.actualBoundingBoxAscent || markerFontSize * 0.8;
+		const descent = metrics.actualBoundingBoxDescent || markerFontSize * 0.2;
+		const textHeight = ascent + descent;
+
+		const padX = markerFontSize * 0.6;
+		const padY = markerFontSize * 0.4;
+		const boxWidth = textWidth + padX * 2;
+		const boxHeight = textHeight + padY * 2;
+
+		const boxX = pos.x - boxWidth / 2;
+		const boxY = pos.y - boxHeight / 2;
+
+		const radius = Math.min(boxHeight / 2, markerFontSize * 0.5);
+		context.fillStyle = "#000000a6";
+		context.strokeStyle = "transparent";
+		context.lineWidth = Math.max(0.5 * (markerFontSize / 10), 0.4);
+
+		drawRoundedRect(context, boxX, boxY, boxWidth, boxHeight, radius);
+		context.fill();
+		context.stroke();
+
+		context.fillStyle = "#fff";
+		context.fillText(name, pos.x - textWidth / 2, boxY + padY + ascent);
 	});
 };
 
