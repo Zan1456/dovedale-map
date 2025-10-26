@@ -798,7 +798,7 @@ const drawScene = () => {
 		const boxY = pos.y - boxHeight / 2;
 
 		const radius = Math.min(boxHeight / 2, markerFontSize * 0.5);
-		context.fillStyle = "#000000a6";
+		context.fillStyle = "#00000078";
 		context.strokeStyle = "transparent";
 		context.lineWidth = Math.max(0.5 * (markerFontSize / 10), 0.4);
 
